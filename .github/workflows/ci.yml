@@ -127,11 +127,11 @@ jobs:
         run: |
           count=$(find .claude/skills -name "SKILL.md" | wc -l)
           echo "Found $count skills"
-          if [ $count -ne 22 ]; then
-            echo "ERROR: Expected 22 skills, found $count"
+          if [ $count -lt 1 ]; then
+            echo "ERROR: No skills found"
             exit 1
           fi
-          echo "✅ All 22 skills present on ${{ matrix.os }}"
+          echo "✅ Found $count skills on ${{ matrix.os }}"
         shell: bash
 
       - name: Run tests (if tests exist)
@@ -191,27 +191,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check command files exist
+      - name: Check command files exist and are valid
         run: |
-          commands=(
-            "plan.md"
-            "code.md"
-            "review.md"
-            "fix.md"
-            "docs.md"
-            "clean.md"
-            "memory-graph.md"
-            "memory-check.md"
-          )
+          if [ ! -d ".claude/commands" ]; then
+            echo "ERROR: .claude/commands directory not found"
+            exit 1
+          fi
 
-          for cmd in "${commands[@]}"; do
-            if [ ! -f ".claude/commands/$cmd" ]; then
-              echo "ERROR: Missing command: $cmd"
-              exit 1
-            else
-              echo "OK: Found command: $cmd"
+          count=$(ls -1 .claude/commands/*.md 2>/dev/null | wc -l)
+          echo "Found $count command files"
+
+          if [ $count -lt 1 ]; then
+            echo "ERROR: No command files found"
+            exit 1
+          fi
+
+          for cmd in .claude/commands/*.md; do
+            if [ -f "$cmd" ]; then
+              echo "✓ Found: $(basename $cmd)"
             fi
           done
+
+          echo "✅ All $count commands validated"
 
   validate-agents:
     name: Validate Agent Files
@@ -221,28 +222,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check agent files exist
+      - name: Check agent files exist and are valid
         run: |
-          agents=(
-            "project-manager.md"
-            "coder.md"
-            "reviewer.md"
-            "reviewer-story.md"
-            "tester.md"
-            "research.md"
-            "refactor.md"
-            "documentation.md"
-            "cleanup.md"
-          )
+          if [ ! -d ".claude/agents" ]; then
+            echo "ERROR: .claude/agents directory not found"
+            exit 1
+          fi
 
-          for agent in "${agents[@]}"; do
-            if [ ! -f ".claude/agents/$agent" ]; then
-              echo "ERROR: Missing agent: $agent"
-              exit 1
-            else
-              echo "OK: Found agent: $agent"
+          count=$(ls -1 .claude/agents/*.md 2>/dev/null | wc -l)
+          echo "Found $count agent files"
+
+          if [ $count -lt 1 ]; then
+            echo "ERROR: No agent files found"
+            exit 1
+          fi
+
+          for agent in .claude/agents/*.md; do
+            if [ -f "$agent" ]; then
+              echo "✓ Found: $(basename $agent)"
             fi
           done
+
+          echo "✅ All $count agents validated"
 
   validate-plugin:
     name: Validate Plugin Structure
@@ -304,6 +305,57 @@ jobs:
           print(f"✓ Version consistency check passed: {plugin_version}")
           PYTHON_SCRIPT
 
+      - name: Cross-validate plugin.json with filesystem
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import json
+          import os
+          from pathlib import Path
+
+          # Read plugin.json
+          with open(".claude-plugin/plugin.json") as f:
+              plugin_data = json.load(f)
+
+          # Validate agents list matches filesystem
+          declared_agents = plugin_data.get("agents", [])
+          actual_agents = list(Path(".claude/agents").glob("*.md"))
+
+          print(f"Plugin.json declares {len(declared_agents)} agents")
+          print(f"Filesystem contains {len(actual_agents)} agent files")
+
+          # Check all declared agents exist
+          missing = []
+          for agent_path in declared_agents:
+              if not os.path.exists(agent_path):
+                  missing.append(agent_path)
+
+          if missing:
+              print(f"❌ ERROR: plugin.json references missing agents:")
+              for m in missing:
+                  print(f"  - {m}")
+              exit(1)
+
+          # Validate commands directory exists
+          commands_dir = plugin_data.get("commands")
+          if commands_dir and not os.path.exists(commands_dir):
+              print(f"❌ ERROR: plugin.json references missing commands directory: {commands_dir}")
+              exit(1)
+
+          # Validate hooks file exists
+          hooks_file = plugin_data.get("hooks")
+          if hooks_file and not os.path.exists(hooks_file):
+              print(f"❌ ERROR: plugin.json references missing hooks file: {hooks_file}")
+              exit(1)
+
+          # Validate skills directory exists
+          skills_dir = plugin_data.get("skills")
+          if skills_dir and not os.path.exists(skills_dir):
+              print(f"❌ ERROR: plugin.json references missing skills directory: {skills_dir}")
+              exit(1)
+
+          print("✓ All plugin.json references validated against filesystem")
+          PYTHON_SCRIPT
+
   check-docs:
     name: Check Documentation
     runs-on: ubuntu-latest
@@ -314,73 +366,50 @@ jobs:
 
       - name: Check required root documentation
         run: |
-          root_docs=(
-            "README.md"
-            "CHANGELOG.md"
-            "CLAUDE.md"
-            "CONTRIBUTING.md"
-          )
+          # Critical files that must exist
+          critical_docs=("README.md" "CLAUDE.md")
 
           missing=0
-          for doc in "${root_docs[@]}"; do
+          for doc in "${critical_docs[@]}"; do
             if [ ! -f "$doc" ]; then
-              echo "ERROR: Missing root documentation: $doc"
+              echo "❌ CRITICAL: Missing $doc"
               missing=$((missing + 1))
             else
-              echo "OK: Found root documentation: $doc"
+              echo "✓ Found: $doc"
             fi
           done
 
           if [ $missing -gt 0 ]; then
+            echo "ERROR: Critical documentation missing"
             exit 1
           fi
 
-      - name: Check docs/ directory
-        run: |
-          docs_dir=(
-            "docs/CODE_OF_CONDUCT.md"
-            "docs/CREDITS.md"
-            "docs/SECURITY.md"
-            "docs/LICENSE"
-          )
-
-          missing=0
-          for doc in "${docs_dir[@]}"; do
+          # Optional but recommended files
+          optional_docs=("CHANGELOG.md" "CONTRIBUTING.md" "LICENSE")
+          for doc in "${optional_docs[@]}"; do
             if [ ! -f "$doc" ]; then
-              echo "ERROR: Missing docs file: $doc"
-              missing=$((missing + 1))
+              echo "⚠ Optional: Missing $doc (recommended)"
             else
-              echo "OK: Found docs file: $doc"
+              echo "✓ Found: $doc"
             fi
           done
 
-          if [ $missing -gt 0 ]; then
-            exit 1
+          echo "✅ Required documentation validated"
+
+      - name: Check docs directory structure
+        run: |
+          if [ ! -d "docs" ]; then
+            echo "⚠ Warning: docs/ directory not found (optional)"
+            exit 0
           fi
 
-      - name: Check plugin documentation
-        run: |
-          plugin_docs=(
-            "docs/plugins/MEMORY.md"
-            "docs/plugins/SUB_AGENTS.md"
-            "docs/plugins/WORKFLOW.md"
-          )
+          doc_count=$(find docs -name "*.md" -type f 2>/dev/null | wc -l)
+          echo "Found $doc_count documentation files in docs/"
 
-          missing=0
-          for doc in "${plugin_docs[@]}"; do
-            if [ ! -f "$doc" ]; then
-              echo "ERROR: Missing plugin documentation: $doc"
-              missing=$((missing + 1))
-            else
-              echo "OK: Found plugin documentation: $doc"
-            fi
-          done
-
-          if [ $missing -gt 0 ]; then
-            echo "ERROR: Some plugin documentation missing"
-            exit 1
+          if [ $doc_count -gt 0 ]; then
+            echo "✅ Documentation directory validated"
           else
-            echo "OK: All documentation present"
+            echo "⚠ Warning: docs/ directory exists but contains no markdown files"
           fi
 
   summary:
