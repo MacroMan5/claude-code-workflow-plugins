@@ -457,6 +457,38 @@ gh auth login && gh auth status
 
 ---
 
+## Branching Strategy
+
+This repository uses a **develop-main branching workflow**:
+
+- **`main`** - Production-ready releases only
+  - Protected branch with CI checks required
+  - Only accepts PRs from `develop` branch
+  - Direct commits not allowed
+
+- **`develop`** - Integration branch for development
+  - All feature branches merge here first
+  - All PRs should target `develop` by default
+  - Tested and reviewed before merging to main
+
+### Workflow
+
+```bash
+# Feature development
+git checkout develop
+git pull origin develop
+git checkout -b feature/my-feature
+# ... make changes ...
+git push origin feature/my-feature
+# Create PR targeting develop
+
+# Release to production (maintainers only)
+# After develop is stable:
+# Create PR from develop → main
+```
+
+---
+
 ## Contributing
 
 ### Add New Agent
