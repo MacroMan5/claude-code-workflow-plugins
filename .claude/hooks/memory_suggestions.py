@@ -19,8 +19,16 @@ import sys
 
 
 KEY_MARKERS = (
-    "owner:", "maintainer:", "repo:", "endpoint:", "base url:",
-    "service:", "person:", "dataset:", "api:", "team:",
+    "owner:",
+    "maintainer:",
+    "repo:",
+    "endpoint:",
+    "base url:",
+    "service:",
+    "person:",
+    "dataset:",
+    "api:",
+    "team:",
 )
 
 
@@ -66,4 +74,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

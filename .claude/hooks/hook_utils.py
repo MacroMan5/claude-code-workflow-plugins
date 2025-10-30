@@ -1,16 +1,17 @@
 """Common utilities for LAZY_DEV hooks."""
+
 import re
 import json
 
 # Sensitive patterns to redact from logs
 SENSITIVE_PATTERNS = [
-    re.compile(r'(api_key|apikey|api-key)\s*[=:]\s*\S+', re.IGNORECASE),
-    re.compile(r'(password|passwd)\s*[=:]\s*\S+', re.IGNORECASE),
-    re.compile(r'(token|bearer)\s+\S+', re.IGNORECASE),
-    re.compile(r'(secret|secret_key)\s*[=:]\s*\S+', re.IGNORECASE),
-    re.compile(r'Authorization:\s*Bearer\s+\S+', re.IGNORECASE),
-    re.compile(r'AWS_SECRET\s*[=:]\s*\S+', re.IGNORECASE),
-    re.compile(r'PRIVATE_KEY\s*[=:]\s*\S+', re.IGNORECASE),
+    re.compile(r"(api_key|apikey|api-key)\s*[=:]\s*\S+", re.IGNORECASE),
+    re.compile(r"(password|passwd)\s*[=:]\s*\S+", re.IGNORECASE),
+    re.compile(r"(token|bearer)\s+\S+", re.IGNORECASE),
+    re.compile(r"(secret|secret_key)\s*[=:]\s*\S+", re.IGNORECASE),
+    re.compile(r"Authorization:\s*Bearer\s+\S+", re.IGNORECASE),
+    re.compile(r"AWS_SECRET\s*[=:]\s*\S+", re.IGNORECASE),
+    re.compile(r"PRIVATE_KEY\s*[=:]\s*\S+", re.IGNORECASE),
 ]
 
 
@@ -31,7 +32,7 @@ def sanitize_for_logging(text: str) -> str:
 
     # Replace sensitive patterns
     for pattern in SENSITIVE_PATTERNS:
-        sanitized = pattern.sub(lambda m: m.group(1) + '=***REDACTED***', sanitized)
+        sanitized = pattern.sub(lambda m: m.group(1) + "=***REDACTED***", sanitized)
 
     return sanitized
 

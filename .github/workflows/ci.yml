@@ -183,7 +183,6 @@ jobs:
         run: |
           agents=(
             "project-manager.md"
-            "task-enhancer.md"
             "coder.md"
             "reviewer.md"
             "reviewer-story.md"
@@ -281,7 +280,6 @@ jobs:
           docs_dir=(
             "docs/CODE_OF_CONDUCT.md"
             "docs/CREDITS.md"
-            "docs/INSTALLATION.md"
             "docs/SECURITY.md"
             "docs/LICENSE"
           )
