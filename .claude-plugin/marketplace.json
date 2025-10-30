@@ -10,7 +10,7 @@
     {
       "name": "lazy-dev",
       "description": "Complete LAZY_DEV framework with 8 commands, 10 agents, 17 skills",
-      "source": "./LAZY_DEV"
+      "source": "."
     }
   ]
 }

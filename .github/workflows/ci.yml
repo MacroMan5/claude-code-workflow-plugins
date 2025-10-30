@@ -242,7 +242,7 @@ with open('.claude-plugin/marketplace.json') as f:
     for plugin in data['plugins']:
         assert 'source' in plugin, f'Missing source for plugin {plugin.get(\"name\", \"unknown\")}'
         source = plugin['source']
-        assert source.startswith('./'), f'Plugin source must start with \"./\" (got: {source})'
+        assert source == '.' or source.startswith('./'), f'Plugin source must be \".\" or start with \"./\" (got: {source})'
 
     print('✓ marketplace.json is valid')
     print(f'  - Marketplace: {data[\"name\"]}')
