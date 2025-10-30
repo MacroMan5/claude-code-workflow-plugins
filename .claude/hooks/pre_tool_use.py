@@ -104,7 +104,9 @@ COMMAND_INJECTION_PATTERNS = [
     re.compile(r"\bsh\s+-c\b"),  # sh -c
     re.compile(r"\bbash\s+-c\b"),  # bash -c
     re.compile(r"\beval\s+"),  # eval command
-    re.compile(r"\bexec\s+"),  # exec command
+    re.compile(
+        r"(?<!-)(?<!docker\s)(?<!kubectl\s)(?<!npm\s)\bexec\s+"
+    ),  # exec command (not -exec, docker exec, kubectl exec, npm exec)
     re.compile(r"\$\([^)]+\)"),  # $(command) substitution
     re.compile(r"`[^`]+`"),  # `command` substitution
     re.compile(r"\|\s*(sh|bash|zsh)\b"),  # | sh/bash/zsh pipes
@@ -117,13 +119,15 @@ def has_command_injection(command: str) -> bool:
 
     Checks for:
     - Shell execution: sh -c, bash -c
-    - Code evaluation: eval, exec
+    - Code evaluation: eval, exec (standalone)
     - Command substitution: $(...), `...`
     - Pipe to shell: | sh, | bash
 
-    Whitelisted patterns:
+    Whitelisted safe patterns:
     - git commands with $(cat <<'EOF') for commit messages
-    - git commands with command substitution for formatted output
+    - find ... -exec for file operations
+    - docker exec, kubectl exec, npm exec for container/package execution
+    - npx for package execution
 
     Args:
         command: The bash command to analyze
@@ -133,8 +137,16 @@ def has_command_injection(command: str) -> bool:
     """
     normalized = command.lower()
 
-    # Whitelist: Allow git commands with command substitution for commit messages
+    # Whitelist 1: Allow git commands with command substitution for commit messages
     if normalized.strip().startswith("git "):
+        return False
+
+    # Whitelist 2: Allow npx (npm package execution)
+    if normalized.strip().startswith("npx "):
+        return False
+
+    # Whitelist 3: Allow find with -exec flag
+    if "find " in normalized and "-exec " in normalized:
         return False
 
     for pattern in COMMAND_INJECTION_PATTERNS:
