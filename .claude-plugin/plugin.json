@@ -1,0 +1,24 @@
+{
+  "name": "lazy-dev-tools",
+  "description": "LAZY framework for Claude Code: skills, hooks, MCP memory graph integration, documentation workflows, and STT prompt enhancer",
+  "version": "0.1.0",
+  "author": {
+    "name": "Therouxe",
+    "email": "etheroux5@gmail.com"
+  },
+  "homepage": "https://github.com/therouxe/lazy",
+  "repository": "https://github.com/therouxe/lazy",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "hooks",
+    "mcp",
+    "memory",
+    "documentation",
+    "stt",
+    "prompt-enhancer",
+    "automation",
+    "workflows",
+    "context engineering"
+  ]
+}

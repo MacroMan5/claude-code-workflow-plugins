@@ -1,0 +1,20 @@
+{
+  "name": "lazy-marketplace",
+  "description": "Development marketplace for LAZY framework plugin and skills",
+  "owner": {
+    "name": "Therouxe",
+    "email": "etheroux5@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "lazy",
+      "description": "LAZY framework for Claude Code: skills, hooks, MCP memory graph, documentation workflows, and voice-to-prompt enhancer",
+      "version": "0.1.0",
+      "source": "./CLAUDE-PLUGINS/lazy",
+      "author": {
+        "name": "Therouxe",
+        "email": "etheroux5@gmail.com"
+      }
+    }
+  ]
+}

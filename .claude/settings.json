@@ -1,0 +1,186 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(uv:*)",
+      "Bash(find:*)",
+      "Bash(mv:*)",
+      "Bash(grep:*)",
+      "Bash(npm:*)",
+      "Bash(ls:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(make:*)",
+      "Bash(docker:*)",
+      "Bash(python:*)",
+      "Bash(node:*)",
+      "Write",
+      "Edit",
+      "Read",
+      "Bash(chmod:*)",
+      "Bash(touch:*)",
+      "Task"
+    ],
+    "deny": [
+      "Bash(chmod:-R:777:*)",
+      "Bash(chown:-R:*)",
+      "Bash(dd:*)",
+      "Bash(docker system prune:*)",
+      "Bash(find:/:-delete)",
+      "Bash(mkfs:*)",
+      "Bash(rm:-rf:$HOME)",
+      "Bash(rm:-rf:/)",
+      "Bash(rm:-rf:~)",
+      "Bash(shred:*)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash .claude/status_lines/lazy_status.sh",
+    "padding": 0
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/session_start.py"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/user_prompt_submit.py"
+          },
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/pre_prompt_enrichment.py"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/pre_tool_use.py"
+          },
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/log_events.py --event PreToolUse"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/post_tool_use_format.py"
+          },
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/log_events.py --event PostToolUse"
+          },
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/memory_suggestions.py"
+          },
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/memory_router.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/stop.py"
+          },
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/log_events.py --event Stop"
+          },
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/memory_router.py"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/log_events.py --event SubagentStop"
+          }
+        ]
+      }
+    ]
+  },
+  "commands": [
+    {
+      "name": "create-feature",
+      "file": ".claude/commands/create-feature.md",
+      "description": "Create user story and tasks from feature brief"
+    },
+    {
+      "name": "task-exec",
+      "file": ".claude/commands/task-exec.md",
+      "description": "Execute task with quality pipeline"
+    },
+    {
+      "name": "issue-implementation",
+      "file": ".claude/commands/task-exec.md",
+      "description": "Execute task with quality pipeline (alias for GitHub issues)"
+    },
+    {
+      "name": "us-development",
+      "file": ".claude/commands/task-exec.md",
+      "description": "Execute task with quality pipeline (alias for user stories)"
+    },
+    {
+      "name": "story-review",
+      "file": ".claude/commands/story-review.md",
+      "description": "Review story and create PR with all committed tasks"
+    },
+    {
+      "name": "story-fix-review",
+      "file": ".claude/commands/story-fix-review.md",
+      "description": "Fix issues from story review report"
+    },
+    {
+      "name": "documentation",
+      "file": ".claude/commands/documentation.md",
+      "description": "Generate documentation for codebase, branch, commit, or file"
+    },
+    {
+      "name": "cleanup",
+      "file": ".claude/commands/cleanup.md",
+      "description": "Remove dead code safely from codebase"
+    },
+    {
+      "name": "memory-graph",
+      "file": ".claude/commands/memory-graph.md",
+      "description": "Manage persistent knowledge via MCP Memory Graph"
+    },
+    {
+      "name": "memory-check",
+      "file": ".claude/commands/memory-check.md",
+      "description": "Verify Memory MCP connectivity and stats"
+    }
+  ]
+}
