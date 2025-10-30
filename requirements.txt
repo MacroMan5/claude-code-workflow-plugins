@@ -10,7 +10,4 @@ black>=23.0.0          # Code formatter
 ruff>=0.1.0            # Linter and code quality checker
 mypy>=1.0.0            # Static type checker
 
-# Testing
-pytest>=7.0.0          # Test framework
-pytest-mock>=3.0.0     # Mocking utilities for tests
-pytest-cov>=4.0.0      # Test coverage reporting
+

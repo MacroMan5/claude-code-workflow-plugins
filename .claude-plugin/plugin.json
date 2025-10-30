@@ -1,5 +1,5 @@
 {
-  "name": "lazy-dev",
+  "name": "lazy",
   "version": "2.2.0",
   "description": "Pragmatic, flexible AI framework for Claude Code with optional TDD, smart reviews, and inline task management",
   "author": {
