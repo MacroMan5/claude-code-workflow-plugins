@@ -82,11 +82,11 @@ Automate the mundane (formatting, commits, PRs) while enforcing discipline (qual
 - Documentation: readme-template, api-doc-generator
 - Integration: gh-issue-sync, mcp-memory-router
 
-**4 Hooks** (automation points)
-- UserPromptSubmit: context pack, style selector, memory trigger
-- PreToolUse: safety checks, audit logging
-- PostToolUse: auto-formatting, memory suggestions
-- Stop: quality gate logging, TDD enforcement
+**4 Hook Types** (10 implementations)
+- UserPromptSubmit: context enrichment, memory detection, style selection
+- PreToolUse: safety checks, audit logging, validation
+- PostToolUse: auto-formatting, memory suggestions, cleanup
+- Stop: quality gate logging, TDD enforcement, metrics
 
 ---
 
@@ -168,69 +168,67 @@ gh repo set-default
 
 ### Complete Workflow Example
 
-**1. Create Feature**
 ```bash
+# 1. Create Feature
 /lazy create-feature "Add payment processing with Stripe"
-```
-Output: US-story.md + TASK-1.1.md, TASK-1.2.md, etc.
+# → Creates USER-STORY.md + TASK-*.md files
 
-**2. Execute Tasks**
-```bash
+# 2. Execute Tasks (iteratively)
 /lazy task-exec TASK-1.1
-```
-Flow: Research → TDD (RED → GREEN → REFACTOR) → Quality Pipeline → Review → Commit
+# → TDD implementation → Quality pipeline → Review → Commit
 
-**3. Continue Tasks**
-```bash
 /lazy task-exec TASK-1.2
-/lazy task-exec TASK-1.3
-```
+# → Repeat for each task
 
-**4. Review Story**
-```bash
-/lazy story-review US-3.4
-```
-Output: PR created (if approved) OR review report with fixes
+# 3. Review Complete Story
+/lazy story-review USER-STORY.md
+# → Reviews all tasks together → Creates PR
 
-**5. Apply Fixes (if needed)**
-```bash
+# 4. Apply Fixes (if needed)
 /lazy story-fix-review review-report.md
+# → Fixes issues and re-reviews
 ```
+
+**See [WORKFLOW.md](./WORKFLOW.md) for detailed workflow documentation.**
 
 ### Quality Pipeline
 
-Every task execution enforces:
+Every task enforces fail-fast quality checks:
 ```
-Format (Black/Ruff) → Lint (Ruff) → Type (Mypy) → Test (Pytest)
-      PASS              PASS          PASS         PASS
-                        ↓
-                  Git Commit Allowed
+Format → Lint → Type → Test → PASS → Commit
 ```
 
-**Fail-fast**: Pipeline stops at first failure, blocks broken code.
+**Prerequisites**:
+- Scripts: `scripts/format.py`, `scripts/lint.py`, `scripts/type_check.py`, `scripts/test_runner.py`
+- Tools: `black`, `ruff`, `mypy`, `pytest` (installed via `uv`)
+
+**See [WORKFLOW.md](./WORKFLOW.md) for pipeline details.**
 
 ### Agent Delegation
 
-Agents are **automatically invoked** based on context. You don't manually invoke them.
+Agents are automatically invoked based on context (Anthropic pattern):
+- **project-manager** → Creates stories/tasks
+- **coder** → Implements with TDD
+- **reviewer** → Reviews code quality
+- **tester** → Writes comprehensive tests
 
-**Example**: `/lazy task-exec TASK-1.1` automatically delegates to:
-- Research agent (if `--with-research`)
-- Coder agent (implementation)
-- Tester agent (test generation)
-- Reviewer agent (code review)
+**See [SUB_AGENTS.md](./SUB_AGENTS.md) for complete agent specifications.**
 
-Agents extract context from conversation naturally (Anthropic pattern).
+### Memory System
 
-### MCP Memory Integration
-
+Semi-automatic persistence of durable facts (AI-assisted):
 ```bash
-# Store knowledge
-/lazy memory-graph "service:api owned_by person:alice"
-/lazy memory-graph "repo:org/api endpoint:https://api.example.com"
+# Manual storage
+/lazy memory-graph "service:api owned_by:alice"
 
-# Auto-triggers: UserPromptSubmit hook detects durable facts
-# Persists across sessions
+# Automatic detection + suggestion
+# Hooks detect entity mentions → suggest storage → Claude Code invokes MCP tools
+# Context grows across sessions without manual re-prompting
 ```
+
+**How it works**: Hooks detect durable facts (service owners, endpoints, repo links) and suggest MCP Memory storage. Claude Code decides when to invoke MCP tools based on context.
+
+**See [MEMORY.md](./MEMORY.md) for complete memory system documentation.**
 
 ---
 
@@ -275,31 +273,15 @@ When invoked:
 
 **Key**: Context-based delegation (no variable substitution).
 
-### Workflow Diagram
+### High-Level Workflow
 
 ```
-Voice Input → STT → Enhancement → /lazy create-feature
-                                         ↓
-                              US-story + Tasks Created
-                                         ↓
-                                  /lazy task-exec
-                                         ↓
-                         TDD: RED → GREEN → REFACTOR
-                                         ↓
-                                  Quality Pipeline
-                                         ↓
-                                    Code Review
-                                         ↓
-                                    Git Commit
-                                         ↓
-                                   More Tasks? → Yes: Loop
-                                         ↓ No
-                                 /lazy story-review
-                                         ↓
-                                  Story Approved?
-                                         ↓ Yes
-                                    Auto PR Created
+Voice/Text Input → Feature Creation → Task Execution → Story Review → PR
+                                           ↓
+                                    TDD + Quality + Review
 ```
+
+**See [WORKFLOW.md](./WORKFLOW.md) for detailed workflow diagrams and state machines.**
 
 ---
 
@@ -378,39 +360,35 @@ System prompt in markdown...
 
 ## Troubleshooting
 
-### ENRICHMENT_MODEL not set
+### Common Issues
+
+**ENRICHMENT_MODEL not set:**
 ```bash
 export ENRICHMENT_MODEL=claude-3-5-haiku
 ```
 
-### MCP Memory not connecting
+**MCP Memory not connecting:**
 ```bash
-node --version  # Check Node.js
-npx -y @modelcontextprotocol/server-memory  # Test server
-cp LAZY_DEV/.claude/.mcp.json .mcp.json  # Copy config
+node --version  # Need v18+
+npx -y @modelcontextprotocol/server-memory
 ```
 
-### Quality pipeline fails
+**Quality pipeline fails:**
 ```bash
-python scripts/format.py lazy_dev/  # Auto-fix
-python scripts/lint.py lazy_dev/    # Check lint
-python scripts/type_check.py lazy_dev/  # Check types
+python scripts/format.py .  # Auto-fix formatting
+python scripts/lint.py .    # Check linting
 ```
 
-### GitHub PR creation fails
+**GitHub auth issues:**
 ```bash
-gh auth login  # Authenticate
-gh auth status  # Verify
-gh repo set-default  # Set repo
+gh auth login && gh auth status
 ```
 
-### Agent delegation not working
-1. Check agent description is clear
-2. Verify YAML frontmatter format
-3. Ensure command provides context in conversation
-4. Review logs in `.claude/data/logs/`
-
-**More help**: See WORKFLOW.md, SUB_AGENTS.md, or GitHub Issues.
+**Detailed Troubleshooting:**
+- **Workflow Issues** → See [WORKFLOW.md](./WORKFLOW.md#failure-scenarios--recovery)
+- **Memory Issues** → See [MEMORY.md](./MEMORY.md#troubleshooting)
+- **Agent Issues** → See [SUB_AGENTS.md](./SUB_AGENTS.md)
+- **Framework Issues** → See [CLAUDE.md](./CLAUDE.md#troubleshooting)
 
 ---
 
@@ -440,15 +418,32 @@ gh repo set-default  # Set repo
 
 ---
 
+## Documentation
+
+### Getting Started
+- **[README.md](./README.md)** (this file) - Overview and quick start
+- **[CLAUDE.md](./CLAUDE.md)** - Guide for Claude Code when working with this framework
+
+### Core Documentation
+- **[WORKFLOW.md](./WORKFLOW.md)** - Complete workflow guide (commit-per-task, PR-per-story pattern)
+- **[MEMORY.md](./MEMORY.md)** - Automatic memory system with MCP Memory
+- **[SUB_AGENTS.md](./SUB_AGENTS.md)** - Agent registry and specifications
+
+### Reference
+- **[CHANGELOG.md](./CHANGELOG.md)** - Version history and release notes
+- **[WORKFLOW_COHERENCE_REPORT.md](./WORKFLOW_COHERENCE_REPORT.md)** - Framework coherence analysis
+
+### Logs & Debugging
+- `.claude/data/logs/` - Hook execution logs
+- `.claude/data/metrics/` - Quality metrics
+
+---
+
 ## Resources
 
-**Documentation**
-- README.md (this file) - Overview and setup
-- WORKFLOW.md - Detailed workflow guide
-- SUB_AGENTS.md - Agent registry and specs
-- CHANGELOG.md - Version history
-
-**Logs**: `.claude/data/logs/` for hook execution logs
+**Official Documentation**
+- [Claude Code Documentation](https://docs.claude.com/claude-code)
+- [MCP Memory Protocol](https://github.com/modelcontextprotocol/servers/tree/main/src/memory)
 
 **Credits**
 - Anthropic Claude Code (official patterns)
