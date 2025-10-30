@@ -12,18 +12,6 @@
         ]
       }
     ],
-    "PreToolUse": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python ${CLAUDE_PLUGIN_ROOT}/LAZY_DEV/.claude/hooks/pre_tool_use.py",
-            "description": "Safety checks before tool execution (prevent rm -rf, force-push to main, etc.)"
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
