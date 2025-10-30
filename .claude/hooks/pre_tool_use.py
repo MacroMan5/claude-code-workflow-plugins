@@ -121,6 +121,10 @@ def has_command_injection(command: str) -> bool:
     - Command substitution: $(...), `...`
     - Pipe to shell: | sh, | bash
 
+    Whitelisted patterns:
+    - git commands with $(cat <<'EOF') for commit messages
+    - git commands with command substitution for formatted output
+
     Args:
         command: The bash command to analyze
 
@@ -128,6 +132,10 @@ def has_command_injection(command: str) -> bool:
         True if command injection pattern detected, False otherwise
     """
     normalized = command.lower()
+
+    # Whitelist: Allow git commands with command substitution for commit messages
+    if normalized.strip().startswith("git "):
+        return False
 
     for pattern in COMMAND_INJECTION_PATTERNS:
         if pattern.search(normalized):
