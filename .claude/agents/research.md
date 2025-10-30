@@ -1,6 +1,6 @@
 ---
 name: research
-description: Research specialist for documentation and best practices.
+description: Research specialist for documentation and best practices. Use PROACTIVELY when user mentions unfamiliar technologies or needs documentation.
 tools: Read, WebSearch, WebFetch
 model: haiku
 ---

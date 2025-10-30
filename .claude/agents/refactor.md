@@ -1,6 +1,6 @@
 ---
 name: refactor
-description: Refactoring specialist. Simplifies code while preserving functionality.
+description: Refactoring specialist. Simplifies code while preserving functionality. Use PROACTIVELY when code has high complexity, duplication, or architecture issues.
 tools: Read, Edit
 model: sonnet
 ---

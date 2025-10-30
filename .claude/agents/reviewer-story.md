@@ -1,6 +1,6 @@
 ---
 name: reviewer-story
-description: Story-level code reviewer. Reviews all tasks in a story before creating PR. Checks cohesion, integration, and completeness. Use proactively after all tasks in a story are complete.
+description: Story-level code reviewer. Reviews all tasks in a story before creating PR. Use PROACTIVELY when all story tasks are complete and ready for final review.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---

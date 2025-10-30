@@ -137,51 +137,106 @@ echo "   Report: $(basename $report_file)"
 echo ""
 ```
 
-### 2. Issue Analysis and Agent Selection
+### 2. Issue Analysis and Automatic Agent Routing
 
 <thinking>
-Based on issue category and severity, determine which sub-agent to invoke.
-Map each issue to the appropriate specialist agent.
+Instead of manually mapping issue types to agents, use the agent registry for automatic routing.
+This centralizes agent selection logic and makes it easy to modify routing without changing command code.
 </thinking>
 
-<agent_selection_rules>
+<agent_registry>
 
-**Code Issues** → @agent-coder
-- Logic errors, implementation bugs
-- Missing functionality, incomplete features
-- Code quality issues, anti-patterns
-- Refactoring needs
+**Agent Registry Location**: `.claude/core/agent_registry.json`
 
-**Test Gaps** → @agent-tester
-- Missing test coverage
-- Incomplete edge case testing
-- Test failures, broken assertions
-- Integration test needs
+The registry contains:
+- Agent definitions with capabilities and models
+- Issue type mappings to agents
+- Default routing behavior
+- Specialization areas for each agent
 
-**Architecture Issues** → @agent-refactor
-- Design pattern violations
-- Architectural inconsistencies
-- Performance bottlenecks
-- Scalability concerns
+**Routing Logic:**
 
-**Documentation Issues** → @agent-documentation
-- Missing docstrings
-- Incomplete README sections
-- API documentation gaps
-- Setup instruction issues
+1. **Load agent registry**: Read `.claude/core/agent_registry.json`
 
-**Security Issues** → @agent-coder (with security focus)
-- Injection vulnerabilities
-- Authentication/authorization gaps
-- Data exposure risks
-- Cryptography issues
+2. **Parse issue category**: Extract category from report issue (security, code_issue, test_gap, architecture, documentation, etc.)
 
-**Type Checking Issues** → @agent-coder
-- Missing type hints
-- Type annotation errors
-- Mypy failures
+3. **Normalize category**: Convert to lowercase with underscores
+   - "Code Issue" → "code_issue"
+   - "Test Gap" → "test_gap"
+   - "Security" → "security"
+   - "Missing Docstring" → "missing_docstring"
 
-</agent_selection_rules>
+4. **Map to agent**: Look up category in `issue_type_mappings`
+   ```json
+   {
+     "security": "coder",
+     "code_issue": "coder",
+     "test_gap": "tester",
+     "architecture": "refactor",
+     "documentation": "documentation"
+   }
+   ```
+
+5. **Get agent details**: Retrieve agent configuration from `agents` section
+   ```json
+   {
+     "coder": {
+       "name": "coder",
+       "file": ".claude/agents/coder.md",
+       "model": "sonnet",
+       "tools": ["Read", "Write", "Edit", "Bash", "Grep", "Glob"],
+       "capabilities": [
+         "implementation",
+         "code-writing",
+         "bug-fixing",
+         "security-implementation"
+       ],
+       "description": "Implementation specialist for all coding tasks"
+     }
+   }
+   ```
+
+6. **Load agent template**: Read agent file from `file_path`
+
+7. **Provide context in conversation**: Agent extracts context from conversation history
+   - Issue description
+   - Severity level
+   - Affected files
+   - Task ID
+   - Story context
+
+**Benefits of Automatic Routing:**
+- No manual if/else logic in command
+- Add new issue types by updating registry only
+- Consistent agent invocation pattern
+- Easy to change agent assignments
+- Centralized routing configuration
+- Can override agent selection if needed
+
+**Example Routing Flow:**
+
+```bash
+# Issue from report: "Security: SQL injection in auth.py"
+category="security"
+
+# Load registry
+registry=$(cat .claude/core/agent_registry.json)
+
+# Map to agent
+agent_name=$(echo "$registry" | jq -r ".issue_type_mappings.security")
+# Result: "coder"
+
+# Get agent config
+agent_config=$(echo "$registry" | jq -r ".agents.coder")
+agent_file=$(echo "$agent_config" | jq -r ".file")
+agent_model=$(echo "$agent_config" | jq -r ".model")
+
+# Result:
+# agent_file = ".claude/agents/coder.md"
+# agent_model = "sonnet"
+```
+
+</agent_registry>
 
 ### 3. Systematic Issue Resolution
 

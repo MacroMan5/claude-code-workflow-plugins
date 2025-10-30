@@ -1,6 +1,6 @@
 ---
 name: project-manager
-description: Create comprehensive US-story and TASKS from feature brief. Use immediately after /lazy create-feature.
+description: Create comprehensive US-story and TASKS from feature brief. Use PROACTIVELY when user provides a feature brief or requests story creation.
 tools: Read, Write, Grep, Glob
 model: sonnet
 ---

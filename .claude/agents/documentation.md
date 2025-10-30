@@ -1,6 +1,6 @@
 ---
 name: documentation
-description: Documentation specialist. Generates/updates docs, docstrings, README.
+description: Documentation specialist. Generates/updates docs, docstrings, README. Use PROACTIVELY when code lacks documentation or README needs updating.
 tools: Read, Write, Grep, Glob
 model: haiku
 ---

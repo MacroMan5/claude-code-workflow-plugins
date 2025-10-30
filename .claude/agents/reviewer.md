@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Senior code reviewer. Use after implementation. Checks quality, security, testing.
+description: Senior code reviewer. Use PROACTIVELY after code changes to review quality, security, and performance.
 tools: Read, Grep, Glob, Bash(git diff*), Bash(git log*)
 model: sonnet
 ---

@@ -1,6 +1,6 @@
 ---
 name: tester
-description: Testing specialist. Generates comprehensive test suites with edge cases.
+description: Testing specialist. Generates comprehensive test suites with edge cases. Use PROACTIVELY when code lacks tests or test coverage is below 80%.
 tools: Read, Write, Bash(pytest*), Bash(coverage*)
 model: haiku
 ---

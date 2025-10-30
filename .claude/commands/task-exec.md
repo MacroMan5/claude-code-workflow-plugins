@@ -8,6 +8,15 @@ allowed-tools: Read, Write, Edit, Bash, Task, Glob, Grep
 
 Execute single task or entire user story through full quality pipeline with complete git workflow.
 
+## Agent Routing
+
+This command uses automatic agent routing via `.claude/core/agent_registry.json`:
+- **Research**: intent "research-topic" → research agent
+- **Implementation**: intent "implement-code" → coder agent
+- **Review**: intent "review-code" → reviewer agent
+
+Agents are invoked automatically based on pipeline stage. No manual agent selection required.
+
 ## Aliases
 
 This command can be invoked as:
@@ -674,10 +683,12 @@ For a single task (when `$task_id` is not "all"):
 
 3. **Research Agent (Optional)**
 
-   If `$with_research` is "true":
+   If `$with_research` is "true", the research agent is invoked automatically via the agent registry.
 
    ```markdown
-   # Invoke research agent via Task tool
+   # Research agent invoked automatically (intent: "research-topic")
+   # Agent registry routes to: .claude/agents/research.md
+
    You are the Research Agent for LAZY-DEV-FRAMEWORK.
 
    ## Task
@@ -699,8 +710,12 @@ For a single task (when `$task_id` is not "all"):
 
 4. **Coder Agent**
 
+   The coder agent is invoked automatically via the agent registry for implementation tasks.
+
    ```markdown
-   # Invoke coder agent via Task tool
+   # Coder agent invoked automatically (intent: "implement-code")
+   # Agent registry routes to: .claude/agents/coder.md
+
    You are the Coder Agent for LAZY-DEV-FRAMEWORK.
 
    ## Task
@@ -913,10 +928,12 @@ Proceeding to code review...
 
 #### Step 1: Reviewer Agent
 
-Invoke reviewer agent to validate implementation:
+The reviewer agent is invoked automatically via the agent registry to validate implementation:
 
 ```markdown
-# Invoke reviewer agent via Task tool
+# Reviewer agent invoked automatically (intent: "review-code")
+# Agent registry routes to: .claude/agents/reviewer.md
+
 You are the Reviewer Agent for LAZY-DEV-FRAMEWORK.
 
 ## Task Being Reviewed

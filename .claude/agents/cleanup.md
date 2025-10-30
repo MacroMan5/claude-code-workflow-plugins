@@ -1,6 +1,6 @@
 ---
 name: cleanup
-description: Cleanup specialist. Removes dead code and unused imports.
+description: Cleanup specialist. Removes dead code and unused imports. Use PROACTIVELY when detecting dead code, unused imports, or stale files.
 tools: Read, Edit, Bash(git rm), Grep, Glob
 model: haiku
 ---

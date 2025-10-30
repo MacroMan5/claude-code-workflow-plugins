@@ -1,6 +1,6 @@
 ---
 name: coder
-description: Implementation specialist for coding tasks. Use for all development work.
+description: Implementation specialist for coding tasks. Use PROACTIVELY when user requests code implementation, bug fixes, or security fixes.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 ---

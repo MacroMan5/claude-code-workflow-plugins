@@ -1,6 +1,6 @@
 ---
 name: task-enhancer
-description: Task enhancement specialist. Researches codebase and adds technical context to tasks. Use after project-manager creates initial tasks.
+description: Task enhancement specialist. Researches codebase and adds technical context to tasks. Use PROACTIVELY after project-manager creates tasks to add technical context.
 tools: Read, Write, Edit, Grep, Glob
 model: sonnet
 ---
