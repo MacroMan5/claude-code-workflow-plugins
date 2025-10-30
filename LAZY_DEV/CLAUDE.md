@@ -21,11 +21,11 @@ Automate mundane tasks (formatting, commits, PRs) while enforcing discipline (qu
 ### Primary Workflow Commands
 
 ```bash
-# 1. Create feature with automatic story + tasks
+# 1. Create feature with inline tasks
 /lazy create-feature "<brief description>"
 
-# 2. Execute tasks with TDD + quality pipeline
-/lazy task-exec <TASK-ID>
+# 2. Execute task with flexible quality checks
+/lazy task-exec <TASK-ID> --story US-X
 
 # 3. Review story and create PR
 /lazy story-review <US-ID>
@@ -54,13 +54,13 @@ Automate mundane tasks (formatting, commits, PRs) while enforcing discipline (qu
 
 ### The Commit-Per-Task, PR-Per-Story Pattern
 
-LAZY_DEV enforces a strict workflow:
+LAZY_DEV workflow structure:
 
 ```
-USER-STORY (feature)
-├── TASK-1.1 → Code → Quality → Review → COMMIT (no PR)
-├── TASK-1.2 → Code → Quality → Review → COMMIT (no PR)
-├── TASK-1.3 → Code → Quality → Review → COMMIT (no PR)
+USER-STORY (single file with inline tasks)
+├── TASK-1 → Code → Quality (flexible) → Review (if complex) → COMMIT
+├── TASK-2 → Code → Quality (flexible) → Review (if complex) → COMMIT
+├── TASK-3 → Code → Quality (flexible) → Review (if complex) → COMMIT
 │
 └── STORY REVIEW → Single PR (all tasks together)
 ```
@@ -68,27 +68,29 @@ USER-STORY (feature)
 **Key Points:**
 - ✅ One commit per task
 - ✅ One PR per user story
-- ✅ Quality pipeline runs on every task
-- ✅ Code review happens at both task and story level
+- ✅ Tasks are inline sections in US-story.md (not separate files)
+- ✅ Quality checks adapt to project (TDD optional)
+- ✅ Code review only for complex/critical tasks
 - ❌ Never create PRs for individual tasks
 
-### Quality Pipeline (Mandatory)
+### Quality Pipeline (Flexible)
 
-Every task execution enforces this fail-fast pipeline:
+Task execution applies quality checks based on project configuration:
 
 ```
-Format (Black/Ruff) → Lint (Ruff) → Type (Mypy) → Test (Pytest)
-      ↓                 ↓              ↓            ↓
-    PASS              PASS           PASS         PASS
-                                                    ↓
-                                              Git Commit Allowed
+Format (if configured) → Lint (if configured) → Type (if configured) → Test (if TDD required)
+      ↓                     ↓                      ↓                      ↓
+    PASS/SKIP            PASS/SKIP              PASS/SKIP              PASS/SKIP
+                                                                          ↓
+                                                                    Git Commit Allowed
 ```
 
-**Enforcement:**
-- Pipeline stops at first failure
-- No commits allowed until all checks pass
-- 80% minimum test coverage required
-- Auto-formatting applied automatically
+**Flexibility:**
+- **TDD**: Only enforced if mentioned in README/CLAUDE.md
+- **Tests**: Skip with `--skip-tests` if not required
+- **Review**: Skip with `--skip-review` for simple tasks
+- **Type checking**: Only runs if mypy/tsc configured
+- **Linting**: Only runs if ruff/eslint configured
 
 ---
 
@@ -125,18 +127,16 @@ When invoked:
 ### Available Agents (Auto-Delegated)
 
 **Planning & Management:**
-- `project-manager` - Creates user stories and tasks
-- `task-enhancer` - Enriches task descriptions
+- `project-manager` - Creates user stories with inline tasks
 
 **Development:**
-- `coder` - Implements features with TDD
+- `coder` - Implements features (TDD optional)
 - `tester` - Writes comprehensive tests
 - `refactor` - Improves code quality
 
 **Quality & Review:**
-- `reviewer` - Reviews code at task level
+- `reviewer` - Reviews code for complex tasks only
 - `reviewer-story` - Reviews complete stories
-- `security-scanner` - Checks for vulnerabilities
 
 **Documentation & Cleanup:**
 - `documentation` - Generates/updates docs
@@ -147,7 +147,7 @@ When invoked:
 
 ## Hook System
 
-LAZY_DEV uses 4 hooks at strategic automation points:
+LAZY_DEV uses 3 hooks at strategic automation points:
 
 ### 1. UserPromptSubmit Hook
 
@@ -165,27 +165,13 @@ User types: /lazy create-feature "Add payments"
 Hook enriches with:
   - Architecture: adapter pattern, repository pattern
   - Security: OWASP top 10 considerations
-  - Testing: TDD requirements
+  - Testing: Optional TDD (if project uses it)
   - Performance: async patterns
      ↓
 Enriched prompt passed to command
 ```
 
-### 2. PreToolUse Hook
-
-**Fires:** Before dangerous tool operations
-
-**Purpose:**
-- Safety checks (prevent rm -rf, force-push to main)
-- Audit logging
-- Validation
-
-**Protected Operations:**
-- `git push --force` to main/master
-- File deletion operations
-- Database migrations without backup
-
-### 3. PostToolUse Hook
+### 2. PostToolUse Hook
 
 **Fires:** After tool operations complete
 
@@ -198,12 +184,12 @@ Enriched prompt passed to command
 ```
 After Write/Edit tool:
      ↓
-Hook runs Black/Ruff formatter
+Hook runs Black/Ruff formatter (if configured)
      ↓
 Code is auto-formatted
 ```
 
-### 4. Stop Hook
+### 3. Stop Hook
 
 **Fires:** When session ends or task completes
 
