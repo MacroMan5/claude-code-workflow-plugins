@@ -230,10 +230,24 @@ with open('.claude-plugin/plugin.json') as f:
 import json
 with open('.claude-plugin/marketplace.json') as f:
     data = json.load(f)
+
+    # Validate required fields
     assert 'name' in data, 'Missing name in marketplace.json'
+    assert ' ' not in data['name'], 'Marketplace name cannot contain spaces (use kebab-case)'
+    assert 'owner' in data, 'Missing owner in marketplace.json'
     assert 'plugins' in data, 'Missing plugins in marketplace.json'
     assert len(data['plugins']) > 0, 'No plugins defined in marketplace.json'
+
+    # Validate plugin source paths
+    for plugin in data['plugins']:
+        assert 'source' in plugin, f'Missing source for plugin {plugin.get(\"name\", \"unknown\")}'
+        source = plugin['source']
+        assert source.startswith('./'), f'Plugin source must start with \"./\" (got: {source})'
+
     print('✓ marketplace.json is valid')
+    print(f'  - Marketplace: {data[\"name\"]}')
+    print(f'  - Owner: {data[\"owner\"][\"name\"]}')
+    print(f'  - Plugins: {len(data[\"plugins\"])}')
 "
 
   check-docs:

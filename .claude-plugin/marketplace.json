@@ -1,13 +1,16 @@
 {
-  "name": "LAZY_DEV Marketplace",
+  "name": "lazy-dev-marketplace",
   "description": "Command-first AI framework for Claude Code with automated workflows, quality enforcement, and persistent knowledge management",
-  "author": "MacroMan5 (Therouxe)",
+  "owner": {
+    "name": "MacroMan5",
+    "email": "etheroux5@gmail.com"
+  },
   "version": "2.0.0",
   "plugins": [
     {
       "name": "lazy-dev",
       "description": "Complete LAZY_DEV framework with 8 commands, 10 agents, 17 skills",
-      "source": "."
+      "source": "./LAZY_DEV"
     }
   ]
 }
