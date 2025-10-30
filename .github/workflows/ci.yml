@@ -63,7 +63,7 @@ jobs:
 
       - name: Type check with Mypy
         run: |
-          mypy LAZY_DEV/.claude/hooks/ --ignore-missing-imports
+          mypy .claude/hooks/ --ignore-missing-imports
         continue-on-error: true  # Don't fail build on type errors initially
 
   test:
@@ -132,14 +132,14 @@ jobs:
 
       - name: Validate hook syntax
         run: |
-          for hook in LAZY_DEV/.claude/hooks/*.py; do
+          for hook in .claude/hooks/*.py; do
             echo "Validating $hook"
             python -m py_compile "$hook"
           done
 
       - name: Check hooks.json validity
         run: |
-          python -c "import json; json.load(open('LAZY_DEV/.claude/hooks/hooks.json'))"
+          python -c "import json; json.load(open('.claude/hooks/hooks.json'))"
 
   validate-commands:
     name: Validate Command Files
@@ -152,18 +152,18 @@ jobs:
       - name: Check command files exist
         run: |
           commands=(
-            "plan.md"
-            "code.md"
-            "review.md"
-            "fix.md"
-            "docs.md"
-            "clean.md"
+            "create-feature.md"
+            "task-exec.md"
+            "story-review.md"
+            "story-fix-review.md"
+            "documentation.md"
+            "cleanup.md"
             "memory-graph.md"
             "memory-check.md"
           )
 
           for cmd in "${commands[@]}"; do
-            if [ ! -f "LAZY_DEV/.claude/commands/$cmd" ]; then
+            if [ ! -f ".claude/commands/$cmd" ]; then
               echo "❌ Missing command: $cmd"
               exit 1
             else
@@ -183,6 +183,7 @@ jobs:
         run: |
           agents=(
             "project-manager.md"
+            "task-enhancer.md"
             "coder.md"
             "reviewer.md"
             "reviewer-story.md"
@@ -194,7 +195,7 @@ jobs:
           )
 
           for agent in "${agents[@]}"; do
-            if [ ! -f "LAZY_DEV/.claude/agents/$agent" ]; then
+            if [ ! -f ".claude/agents/$agent" ]; then
               echo "❌ Missing agent: $agent"
               exit 1
             else
@@ -219,7 +220,7 @@ with open('.claude-plugin/plugin.json') as f:
     assert 'name' in data, 'Missing name in plugin.json'
     assert 'version' in data, 'Missing version in plugin.json'
     assert 'description' in data, 'Missing description in plugin.json'
-    assert data['version'] == '2.2.0', 'Version mismatch in plugin.json'
+    assert data['version'] == '2.0.0', 'Version mismatch in plugin.json'
     print('✓ plugin.json is valid')
 "
 
@@ -283,9 +284,11 @@ with open('.claude-plugin/marketplace.json') as f:
       - name: Check docs/ directory
         run: |
           docs_dir=(
-            "LAZY_DEV/docs/CODE_OF_CONDUCT.md"
-            "LAZY_DEV/docs/CREDITS.md"
-            "LAZY_DEV/docs/SECURITY.md"
+            "docs/CODE_OF_CONDUCT.md"
+            "docs/CREDITS.md"
+            "docs/INSTALLATION.md"
+            "docs/SECURITY.md"
+            "docs/LICENSE"
           )
 
           missing=0
@@ -305,10 +308,9 @@ with open('.claude-plugin/marketplace.json') as f:
       - name: Check plugin documentation
         run: |
           plugin_docs=(
-            "LAZY_DEV/docs/plugins/INSTALLATION.md"
-            "LAZY_DEV/docs/plugins/MEMORY.md"
-            "LAZY_DEV/docs/plugins/SUB_AGENTS.md"
-            "LAZY_DEV/docs/plugins/WORKFLOW.md"
+            "docs/plugins/MEMORY.md"
+            "docs/plugins/SUB_AGENTS.md"
+            "docs/plugins/WORKFLOW.md"
           )
 
           missing=0
