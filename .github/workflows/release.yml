@@ -25,14 +25,17 @@ jobs:
       - name: Validate version consistency
         run: |
           TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-          PLUGIN_VERSION=$(python -c "import json; print(json.load(open('.claude-plugin/plugin.json'))['version'])")
-
           echo "Tag version: $TAG_VERSION"
-          echo "Plugin version: $PLUGIN_VERSION"
 
-          if [ "$TAG_VERSION" != "$PLUGIN_VERSION" ]; then
-            echo "❌ Version mismatch between tag ($TAG_VERSION) and plugin.json ($PLUGIN_VERSION)"
-            exit 1
+          # Optional: Check plugin.json if it exists
+          if [ -f ".claude-plugin/plugin.json" ]; then
+            PLUGIN_VERSION=$(python -c "import json; print(json.load(open('.claude-plugin/plugin.json'))['version'])")
+            echo "Plugin version: $PLUGIN_VERSION"
+
+            if [ "$TAG_VERSION" != "$PLUGIN_VERSION" ]; then
+              echo "❌ Version mismatch between tag ($TAG_VERSION) and plugin.json ($PLUGIN_VERSION)"
+              exit 1
+            fi
           fi
 
           echo "✓ Version consistency validated"
@@ -51,20 +54,72 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Extract changelog
+      - name: Extract or generate changelog
         id: changelog
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
 
-          # Extract changelog section for this version
-          awk "/## \[$VERSION\]/,/## \[/{if(/## \[/ && !/## \[$VERSION\]/)exit;print}" CHANGELOG.md > release_notes.md
+          # Priority 1: Check for custom release notes (RELEASE_NOTES_X.X.X.md)
+          if [ -f "RELEASE_NOTES_$VERSION.md" ]; then
+            echo "Using custom release notes from RELEASE_NOTES_$VERSION.md"
+            cp "RELEASE_NOTES_$VERSION.md" release_notes.md
 
-          # If empty, use a default message
-          if [ ! -s release_notes.md ]; then
-            echo "Release $VERSION" > release_notes.md
+          # Priority 2: Extract from CHANGELOG.md if it exists
+          elif [ -f "CHANGELOG.md" ]; then
+            echo "Extracting changelog from CHANGELOG.md"
+            awk "/## \[$VERSION\]/,/## \[/{if(/## \[/ && !/## \[$VERSION\]/)exit;print}" CHANGELOG.md > release_notes.md
+
+            # If extraction was empty, generate from git
+            if [ ! -s release_notes.md ]; then
+              echo "Changelog section not found, generating from git log"
+              PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+              if [ -n "$PREV_TAG" ]; then
+                git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges > release_notes.md
+              else
+                git log --pretty=format:"- %s (%h)" --no-merges > release_notes.md
+              fi
+            fi
+
+          # Priority 3: Generate from git log
+          else
+            echo "No CHANGELOG.md found, generating release notes from git log"
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+            echo "# Release $VERSION" > release_notes.md
             echo "" >> release_notes.md
-            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details." >> release_notes.md
+            echo "## What's Changed" >> release_notes.md
+            echo "" >> release_notes.md
+
+            if [ -n "$PREV_TAG" ]; then
+              echo "Changes from $PREV_TAG to v$VERSION:" >> release_notes.md
+              echo "" >> release_notes.md
+              git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges >> release_notes.md
+            else
+              echo "Initial release" >> release_notes.md
+              echo "" >> release_notes.md
+              git log --pretty=format:"- %s (%h)" --no-merges | head -20 >> release_notes.md
+            fi
           fi
+
+      - name: Create release archive
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+
+          # Create archive directory
+          mkdir -p release
+
+          # Create a clean archive without .git
+          echo "Creating archive for LAZY_DEV Framework v$VERSION..."
+          git archive --format=zip --output=release/lazy-dev-framework-v$VERSION.zip HEAD
+
+          # Create tar.gz as well for Unix systems
+          git archive --format=tar.gz --output=release/lazy-dev-framework-v$VERSION.tar.gz HEAD
+
+          # Show archive contents
+          echo ""
+          echo "Archive created:"
+          ls -lh release/
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -75,6 +130,9 @@ jobs:
           prerelease: false
           generate_release_notes: true
           discussion_category_name: Announcements
+          files: |
+            release/*.zip
+            release/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
