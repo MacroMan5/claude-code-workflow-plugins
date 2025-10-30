@@ -1,9 +1,16 @@
 {
   "name": "lazy-dev",
-  "description": "Command-first AI framework for Claude Code with automated workflows, quality enforcement, and persistent knowledge management. Requirements: Claude Code >=1.0.0, Python >=3.11, tools: gh, git, uv. Configure via ENRICHMENT_MODEL, LAZYDEV_ENFORCE_TDD, LAZYDEV_MIN_TESTS environment variables.",
   "version": "2.0.0",
+  "description": "Command-first AI framework for Claude Code with automated workflows, quality enforcement, and persistent knowledge management",
   "author": {
     "name": "MacroMan5 (Therouxe)",
     "email": "etheroux5@gmail.com"
-  }
+  },
+  "homepage": "https://github.com/MacroMan5/claude-code-workflow-plugins",
+  "repository": "https://github.com/MacroMan5/claude-code-workflow-plugins",
+  "license": "MIT",
+  "commands": "./LAZY_DEV/.claude/commands/",
+  "agents": "./LAZY_DEV/.claude/agents/",
+  "hooks": "./LAZY_DEV/.claude/hooks/",
+  "skills": "./LAZY_DEV/.claude/skills/"
 }
