@@ -1,0 +1,16 @@
+# LAZY_DEV Framework - Python Dependencies
+# Install with: pip install -r requirements.txt or uv pip install -r requirements.txt
+
+# Core Dependencies
+anthropic>=0.18.0      # Anthropic API client for pre-prompt enrichment
+python-dotenv>=1.0.0   # Environment variable management
+
+# Code Quality Tools
+black>=23.0.0          # Code formatter
+ruff>=0.1.0            # Linter and code quality checker
+mypy>=1.0.0            # Static type checker
+
+# Testing
+pytest>=7.0.0          # Test framework
+pytest-mock>=3.0.0     # Mocking utilities for tests
+pytest-cov>=4.0.0      # Test coverage reporting

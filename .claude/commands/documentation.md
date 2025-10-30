@@ -207,7 +207,7 @@ Expected flow:
 
 ## Notes
 
-- Documentation Agent is a sub-agent defined in `@LAZY_DEV/lazy_dev/subagents/documentation.md`
+- Documentation Agent is a sub-agent defined in `.claude/agents/documentation.md`
 - Agent uses Haiku model for cost efficiency
 - For large codebases (>50 files), process in batches of 10-15 files
 - Coverage calculation counts docstrings/functions ratio for docstrings format

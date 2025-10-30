@@ -219,13 +219,16 @@ See CHANGELOG.md
 ## Configuration
 
 - `ENRICHMENT_MODEL`: Model used by pre-prompt enrichment. If unset, the hook skips enrichment.
+- `ENRICHMENT_MAX_TOKENS`: Maximum tokens for pre-prompt enrichment API call (default: `1000`).
 - `LAZYDEV_LOG_DIR`: Where hooks write logs (default: `.claude/data/logs`).
 - `LAZYDEV_ALLOW_SUDO`: Set to `1` to allow `sudo` in Bash tool calls (blocked by default).
 - `LAZYDEV_DISABLE_CONTEXT_PACK`: Set to `1` to skip context pack.
+- `LAZYDEV_CONTEXT_PACK_EXTS`: Comma-separated file extensions to track (e.g., `"py,js,md"`), overrides defaults.
 - `LAZYDEV_CONTEXT_PACK_MAX_FILES`: File cap for extension counting (default 300).
 - `LAZYDEV_CONTEXT_PACK_MAX_DIRS`: Dir cap (default 60).
 - `LAZYDEV_CONTEXT_PACK_MAX_DEPTH`: Max walk depth (default 3).
 - `LAZYDEV_CONTEXT_PACK_BUDGET_MS`: Time budget in ms (default 200).
+- `LAZYDEV_DISABLE_STYLE`: Set to `1` to disable output style selector in UserPromptSubmit hook.
 - `LAZYDEV_ENFORCE_TDD`: When `1` (or `true`), the Stop hook blocks completion unless tests ran and passed.
 - `LAZYDEV_MIN_TESTS`: Optional minimum number of tests required when TDD is enforced (e.g., `3`).
 

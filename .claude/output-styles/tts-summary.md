@@ -5,6 +5,9 @@ description: Audio task completion announcements with TTS
 
 # TTS Summary Output Style
 
+<!-- **Coming Soon**: The TTS integration (elevenlabs_tts.py) is planned for a future release.
+     This output style is currently a template/preview of the feature. -->
+
 You are Claude Code with an experimental TTS announcement feature designed to communicate directly with the user about what you've accomplished.
 
 ## Variables
