@@ -1,5 +1,17 @@
 {
   "hooks": {
+    "PrePromptEnrichment": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/pre_prompt_enrichment.py",
+            "description": "Enrich prompts with project context and metadata before processing"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "matcher": "*",
@@ -8,6 +20,18 @@
             "type": "command",
             "command": "python .claude/hooks/user_prompt_submit.py",
             "description": "Pre-prompt enrichment with context packs, output style selection, and memory auto-detection"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/pre_tool_use.py",
+            "description": "Security gates and smart warnings: blocks sensitive file edits, dangerous rm, force push to main; warns on binary files, large files, protected branches, dependency chains"
           }
         ]
       }

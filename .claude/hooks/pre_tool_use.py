@@ -7,15 +7,21 @@
 """
 Pre-tool-use hook for LAZY-DEV-FRAMEWORK.
 
-Security gates - blocks dangerous operations before execution:
-- rm -rf commands with recursive flags
-- git push --force to main/master branches
-- Edits to sensitive files (.env, secrets.json, credentials.json)
-- Directory scanning prevention (node_modules, .git, __pycache__, dist, build)
-- SQL injection patterns
+Context-aware security and productivity gates:
 
-Reference: PROJECT-MANAGEMENT-LAZY_DEV/docs/HOOKS.md (PreToolUse)
-Inspired by: Reddit Claude Code community best practices
+CRITICAL BLOCKS (Security):
+- Edits to sensitive files (.env, credentials, private keys)
+- git push --force to main/master branches
+- Dangerous rm -rf on critical paths (/, ~, system dirs)
+
+SMART WARNINGS (Productivity):
+- Large file edits (>100KB)
+- Binary file modifications
+- Protected branch operations
+- Dependency chain awareness (package.json → lock files)
+
+Philosophy: Guide developers, don't frustrate them.
+Block only truly dangerous operations, warn on potentially problematic ones.
 """
 
 import json
@@ -83,77 +89,131 @@ SENSITIVE_PATTERNS = [
     re.compile(r"PRIVATE_KEY"),
 ]
 
-# Directory scanning command patterns
-SCAN_COMMAND_PATTERNS = [
-    re.compile(r"\bfind\b"),
-    re.compile(r"\bgrep\s+-[a-z]*r"),  # grep -r, grep -rn, etc.
-    re.compile(r"\brg\b"),  # ripgrep
-    re.compile(r"\bag\b"),  # ag (the silver searcher)
-    re.compile(r"\bls\s+-[a-z]*R"),  # ls -R
-    re.compile(r"\btree\b"),
-]
-
 # Check for rm with recursive flag
 RM_RECURSIVE_PATTERN = re.compile(r"\brm\s+.*-[a-z]*r")
 
-# Find current directory pattern
-FIND_CWD_PATTERN = re.compile(r"\bfind\s+\.")
+# Binary file extensions (warn on edits)
+BINARY_EXTENSIONS = {
+    ".exe",
+    ".dll",
+    ".so",
+    ".dylib",
+    ".bin",
+    ".dat",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+    ".bmp",
+    ".ico",
+    ".pdf",
+    ".zip",
+    ".tar",
+    ".gz",
+    ".7z",
+    ".rar",
+    ".mp3",
+    ".mp4",
+    ".avi",
+    ".mov",
+    ".wav",
+    ".pyc",
+    ".pyo",
+    ".class",
+    ".o",
+    ".a",
+}
 
-# Command injection patterns
-COMMAND_INJECTION_PATTERNS = [
-    re.compile(r"\bsh\s+-c\b"),  # sh -c
-    re.compile(r"\bbash\s+-c\b"),  # bash -c
-    re.compile(r"\beval\s+"),  # eval command
-    re.compile(
-        r"(?<!-)(?<!docker\s)(?<!kubectl\s)(?<!npm\s)\bexec\s+"
-    ),  # exec command (not -exec, docker exec, kubectl exec, npm exec)
-    re.compile(r"\$\([^)]+\)"),  # $(command) substitution
-    re.compile(r"`[^`]+`"),  # `command` substitution
-    re.compile(r"\|\s*(sh|bash|zsh)\b"),  # | sh/bash/zsh pipes
-]
+# Large file threshold (bytes)
+LARGE_FILE_THRESHOLD = 100 * 1024  # 100KB
+
+# Dependency file pairs (editing one should check the other)
+DEPENDENCY_PAIRS = {
+    "package.json": ["package-lock.json", "yarn.lock", "pnpm-lock.yaml"],
+    "Cargo.toml": ["Cargo.lock"],
+    "pyproject.toml": ["poetry.lock", "Pipfile.lock"],
+    "composer.json": ["composer.lock"],
+    "Gemfile": ["Gemfile.lock"],
+}
 
 
-def has_command_injection(command: str) -> bool:
+def is_binary_file(file_path: str) -> bool:
     """
-    Detect command injection patterns.
-
-    Checks for:
-    - Shell execution: sh -c, bash -c
-    - Code evaluation: eval, exec (standalone)
-    - Command substitution: $(...), `...`
-    - Pipe to shell: | sh, | bash
-
-    Whitelisted safe patterns:
-    - git commands with $(cat <<'EOF') for commit messages
-    - find ... -exec for file operations
-    - docker exec, kubectl exec, npm exec for container/package execution
-    - npx for package execution
+    Check if file is likely binary based on extension.
 
     Args:
-        command: The bash command to analyze
+        file_path: Path to check
 
     Returns:
-        True if command injection pattern detected, False otherwise
+        True if file appears to be binary
     """
-    normalized = command.lower()
+    from pathlib import Path
 
-    # Whitelist 1: Allow git commands with command substitution for commit messages
-    if normalized.strip().startswith("git "):
-        return False
+    ext = Path(file_path).suffix.lower()
+    return ext in BINARY_EXTENSIONS
 
-    # Whitelist 2: Allow npx (npm package execution)
-    if normalized.strip().startswith("npx "):
-        return False
 
-    # Whitelist 3: Allow find with -exec flag
-    if "find " in normalized and "-exec " in normalized:
-        return False
+def is_large_file(file_path: str) -> tuple[bool, int]:
+    """
+    Check if file exceeds size threshold.
 
-    for pattern in COMMAND_INJECTION_PATTERNS:
-        if pattern.search(normalized):
-            return True
+    Args:
+        file_path: Path to check
 
-    return False
+    Returns:
+        Tuple of (is_large, size_in_bytes)
+    """
+    try:
+        size = os.path.getsize(file_path)
+        return size > LARGE_FILE_THRESHOLD, size
+    except (OSError, FileNotFoundError):
+        return False, 0
+
+
+def check_dependency_chain(file_path: str) -> list[str]:
+    """
+    Check if editing this file should trigger warnings about related files.
+
+    Args:
+        file_path: File being edited
+
+    Returns:
+        List of related files that might need updating
+    """
+    from pathlib import Path
+
+    file_name = Path(file_path).name
+    warnings = []
+
+    if file_name in DEPENDENCY_PAIRS:
+        dir_path = Path(file_path).parent
+        for related_file in DEPENDENCY_PAIRS[file_name]:
+            related_path = dir_path / related_file
+            if related_path.exists():
+                warnings.append(str(related_path))
+
+    return warnings
+
+
+def get_current_branch() -> str:
+    """
+    Get current git branch name.
+
+    Returns:
+        Branch name or empty string if not in git repo
+    """
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        return result.stdout.strip() if result.returncode == 0 else ""
+    except Exception:
+        return ""
 
 
 def is_dangerous_rm_command(command: str) -> bool:
@@ -277,88 +337,57 @@ def is_sensitive_file_access(tool_name: str, tool_input: dict) -> tuple[bool, st
     return False, ""
 
 
-def is_directory_scan_blocked(command: str) -> tuple[bool, str]:
+def generate_warnings(tool_name: str, tool_input: dict) -> list[str]:
     """
-    Detect and block scanning of restricted directories that cause slowdowns.
-
-    Prevents Claude from scanning directories with large numbers of files:
-    - node_modules/ (can have 100K+ files)
-    - .git/ (contains repository history and secrets)
-    - __pycache__/ (Python bytecode cache)
-    - dist/, build/ (build artifacts)
-    - .venv/, venv/ (virtual environments)
-    - .next/ (Next.js build cache)
-    - .cache/ (various caches)
-
-    This prevents:
-    1. Extreme performance degradation from scanning large directories
-    2. Context pollution with irrelevant files
-    3. Leaking sensitive data from .git and .env
-    4. Wasting API tokens on build artifacts
-
-    Based on Reddit best practices for Claude Code hooks.
+    Generate non-blocking warnings for potentially problematic operations.
 
     Args:
-        command: The bash command to analyze
+        tool_name: Name of the tool being used
+        tool_input: Input parameters for the tool
 
     Returns:
-        Tuple of (is_blocked, blocked_directory)
+        List of warning messages (empty if no warnings)
     """
-    # Blocked directory patterns
-    blocked_dirs = [
-        "node_modules",
-        ".git",
-        "__pycache__",
-        "dist",
-        "build",
-        ".venv",
-        "venv",
-        ".next",
-        ".cache",
-        "target",  # Rust build directory
-        "bin",  # Binary directories
-        "obj",  # C# build artifacts
-    ]
+    warnings = []
 
-    # Normalize command
-    normalized = " ".join(command.lower().split())
+    # Check file-based tools for potential issues
+    if tool_name in ["Write", "Edit"]:
+        file_path = tool_input.get("file_path", "")
 
-    # Check if command is a scanning command (use pre-compiled patterns)
-    is_scan_command = any(
-        pattern.search(normalized) for pattern in SCAN_COMMAND_PATTERNS
-    )
+        if file_path:
+            # Warning 1: Binary file modification
+            if is_binary_file(file_path):
+                warnings.append(
+                    f"⚠ WARNING: Attempting to edit binary file: {file_path}\n"
+                    "  Binary files should not be edited as text."
+                )
 
-    if not is_scan_command:
-        return False, ""
+            # Warning 2: Large file modification
+            is_large, size = is_large_file(file_path)
+            if is_large:
+                size_kb = size / 1024
+                warnings.append(
+                    f"⚠ WARNING: Editing large file ({size_kb:.1f}KB): {file_path}\n"
+                    "  Consider editing in smaller chunks to avoid context overflow."
+                )
 
-    # Check if any blocked directory is referenced
-    for blocked_dir in blocked_dirs:
-        patterns = [
-            rf"\b{re.escape(blocked_dir)}\b",  # Direct mention
-            rf"[/\\]{re.escape(blocked_dir)}[/\\]",  # In path
-            rf"\*[/\\]{re.escape(blocked_dir)}",  # With wildcard
-            rf"{re.escape(blocked_dir)}[/\\]\*",  # Trailing wildcard
-        ]
+            # Warning 3: Dependency chain awareness
+            related_files = check_dependency_chain(file_path)
+            if related_files:
+                warnings.append(
+                    f"ℹ INFO: Editing {file_path} may require updating:\n"
+                    + "\n".join(f"  - {f}" for f in related_files)
+                )
 
-        for pattern in patterns:
-            if re.search(pattern, normalized):
-                return True, blocked_dir
+            # Warning 4: Protected branch operation
+            branch = get_current_branch()
+            if branch in ["main", "master"]:
+                warnings.append(
+                    f"⚠ WARNING: Editing on protected branch '{branch}'\n"
+                    "  Consider creating a feature branch instead."
+                )
 
-    # Check for find with path patterns that would include blocked dirs (use pre-compiled pattern)
-    if FIND_CWD_PATTERN.search(normalized):  # find . (current directory recursively)
-        # Allow if explicitly excludes blocked directories
-        excludes_blocked = any(
-            f'-not -path "*/{blocked_dir}/*"' in command
-            or f"-prune -name {blocked_dir}" in command
-            for blocked_dir in blocked_dirs
-        )
-
-        if not excludes_blocked:
-            # Check if command seems to be searching entire tree
-            if not any(name in command for name in ["-name", "-type f", "-maxdepth"]):
-                return True, "current_directory_without_filters"
-
-    return False, ""
+    return warnings
 
 
 def log_tool_call(input_data: dict) -> None:
@@ -408,7 +437,9 @@ def main():
         tool_name = input_data.get("tool_name", "")
         tool_input = input_data.get("tool_input", {})
 
-        # Security Check 1: Sensitive file access
+        # === CRITICAL SECURITY BLOCKS (Non-negotiable) ===
+
+        # Block 1: Sensitive file access
         is_sensitive, file_name = is_sensitive_file_access(tool_name, tool_input)
         if is_sensitive:
             print(
@@ -421,10 +452,12 @@ def main():
             )
             sys.exit(2)  # Exit code 2 blocks tool call
 
-        # Security Check 2: Dangerous rm commands
+        # Bash command security checks
         if tool_name == "Bash":
             command = tool_input.get("command", "")
             normalized = " ".join(command.lower().split())
+
+            # Block 2: sudo commands (unless explicitly allowed)
             if "sudo " in normalized and os.getenv("LAZYDEV_ALLOW_SUDO") not in {
                 "1",
                 "true",
@@ -436,6 +469,7 @@ def main():
                 )
                 sys.exit(2)
 
+            # Block 3: Dangerous rm commands
             if is_dangerous_rm_command(command):
                 print(
                     "BLOCKED: Dangerous rm command detected and prevented",
@@ -444,7 +478,7 @@ def main():
                 print(f"Command: {command}", file=sys.stderr)
                 sys.exit(2)
 
-            # Security Check 3: Force push to main/master
+            # Block 4: Force push to main/master
             if is_force_push_to_main(command):
                 print(
                     "BLOCKED: Force push to main/master branch is prohibited",
@@ -453,28 +487,13 @@ def main():
                 print("This prevents rewriting production history", file=sys.stderr)
                 sys.exit(2)
 
-            # Security Check 4: Directory scanning prevention
-            is_blocked, blocked_dir = is_directory_scan_blocked(command)
-            if is_blocked:
-                print(
-                    f"BLOCKED: Scanning '{blocked_dir}' directory is prohibited",
-                    file=sys.stderr,
-                )
-                print(
-                    "This prevents performance issues and context pollution.",
-                    file=sys.stderr,
-                )
-                print(
-                    "Tip: Use Glob or Grep tools instead of bash find/grep for code search.",
-                    file=sys.stderr,
-                )
-                sys.exit(2)
+        # === SMART WARNINGS (Productivity helpers, non-blocking) ===
 
-            # Security Check 5: Command injection detection
-            if has_command_injection(command):
-                print("BLOCKED: Command injection pattern detected", file=sys.stderr)
-                logger.warning(f"Command injection attempt: {command[:100]}")
-                sys.exit(2)
+        warnings = generate_warnings(tool_name, tool_input)
+        if warnings:
+            # Print warnings to stderr but don't block
+            for warning in warnings:
+                print(warning, file=sys.stderr)
 
         # Log all tool calls for audit trail
         log_tool_call(input_data)
