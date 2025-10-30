@@ -3,6 +3,9 @@ name: documentation
 description: Documentation specialist. Generates/updates docs, docstrings, README. Use PROACTIVELY when code lacks documentation or README needs updating.
 tools: Read, Write, Grep, Glob
 model: haiku
+color: "#6B7280"
+color_name: gray
+ansi_color: "37"
 ---
 
 # Documentation Agent

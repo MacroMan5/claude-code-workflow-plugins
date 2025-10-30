@@ -3,6 +3,9 @@ name: reviewer-story
 description: Story-level code reviewer. Reviews all tasks in a story before creating PR. Use when story is complete and ready for review.
 tools: Read, Grep, Glob, Bash
 model: sonnet
+color: "#F97316"
+color_name: orange
+ansi_color: "33"
 ---
 
 # Story-Level Code Reviewer Agent

@@ -3,6 +3,9 @@ name: reviewer
 description: Senior code reviewer. Use PROACTIVELY after code changes to review quality, security, and performance.
 tools: Read, Grep, Glob, Bash(git diff*), Bash(git log*)
 model: sonnet
+color: "#F59E0B"
+color_name: amber
+ansi_color: "33"
 ---
 
 # Reviewer Agent

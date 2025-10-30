@@ -3,6 +3,9 @@ name: project-manager
 description: Create US-story from feature brief with inline tasks. Use PROACTIVELY when user provides a feature brief or requests story creation.
 tools: Read, Write, Grep, Glob
 model: sonnet
+color: "#06B6D4"
+color_name: cyan
+ansi_color: "36"
 ---
 
 # Project Manager Agent

@@ -3,6 +3,9 @@ name: research
 description: Research specialist for documentation and best practices. Use PROACTIVELY when user mentions unfamiliar technologies or needs documentation.
 tools: Read, WebSearch, WebFetch
 model: haiku
+color: "#EC4899"
+color_name: pink
+ansi_color: "95"
 ---
 
 # Research Agent

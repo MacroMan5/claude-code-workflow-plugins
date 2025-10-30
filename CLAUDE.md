@@ -153,6 +153,38 @@ LAZY_DEV follows Anthropic's context-based delegation pattern. Agents extract co
 
 **Delegation:** Automatic based on command context and agent descriptions. See [SUB_AGENTS.md](./SUB_AGENTS.md) for specifications.
 
+### Agent Color Configuration
+
+Each agent has visual identity settings for better UI/terminal distinction:
+
+| Agent | Color | Hex Code | ANSI | Purpose |
+|-------|-------|----------|------|---------|
+| **coder** | Blue | `#3B82F6` | 34 | Implementation & building |
+| **reviewer** | Amber | `#F59E0B` | 33 | Code review & validation |
+| **reviewer-story** | Orange | `#F97316` | 33 | Story-level review |
+| **tester** | Green | `#10B981` | 32 | Testing & validation |
+| **refactor** | Purple | `#8B5CF6` | 35 | Optimization & improvement |
+| **documentation** | Gray | `#6B7280` | 37 | Documentation writing |
+| **cleanup** | Red | `#EF4444` | 31 | Code removal & cleanup |
+| **research** | Pink | `#EC4899` | 95 | Research & exploration |
+| **project-manager** | Cyan | `#06B6D4` | 36 | Planning & organization |
+
+**Usage in Agent YAML Frontmatter:**
+```yaml
+---
+name: coder
+color: "#3B82F6"
+color_name: blue
+ansi_color: "34"
+---
+```
+
+**Benefits:**
+- Visual distinction in logs and output
+- Easier debugging when multiple agents run
+- Better UX in terminal and web interfaces
+- Consistent branding across tools
+
 ---
 
 ## Hook System

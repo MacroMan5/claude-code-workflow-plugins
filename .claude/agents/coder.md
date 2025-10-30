@@ -3,6 +3,9 @@ name: coder
 description: Implementation specialist for coding tasks. Use PROACTIVELY when user requests code implementation, bug fixes, or security fixes.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
+color: "#3B82F6"
+color_name: blue
+ansi_color: "34"
 ---
 
 # Coder Agent

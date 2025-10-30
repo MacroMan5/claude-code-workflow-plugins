@@ -3,6 +3,9 @@ name: tester
 description: Testing specialist. Generates comprehensive test suites with edge cases. Use PROACTIVELY when code lacks tests or test coverage is below 80%.
 tools: Read, Write, Bash(pytest*), Bash(coverage*)
 model: haiku
+color: "#10B981"
+color_name: green
+ansi_color: "32"
 ---
 
 # Tester Agent

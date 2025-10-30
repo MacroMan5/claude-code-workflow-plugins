@@ -3,6 +3,9 @@ name: refactor
 description: Refactoring specialist. Simplifies code while preserving functionality. Use PROACTIVELY when code has high complexity, duplication, or architecture issues.
 tools: Read, Edit
 model: sonnet
+color: "#8B5CF6"
+color_name: purple
+ansi_color: "35"
 ---
 
 # Refactor Agent
