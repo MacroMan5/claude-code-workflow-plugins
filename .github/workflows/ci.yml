@@ -152,22 +152,22 @@ jobs:
       - name: Check command files exist
         run: |
           commands=(
-            "create-feature.md"
-            "task-exec.md"
-            "story-review.md"
-            "story-fix-review.md"
-            "documentation.md"
-            "cleanup.md"
+            "plan.md"
+            "code.md"
+            "review.md"
+            "fix.md"
+            "docs.md"
+            "clean.md"
             "memory-graph.md"
             "memory-check.md"
           )
 
           for cmd in "${commands[@]}"; do
             if [ ! -f ".claude/commands/$cmd" ]; then
-              echo "❌ Missing command: $cmd"
+              echo "ERROR: Missing command: $cmd"
               exit 1
             else
-              echo "✓ Found command: $cmd"
+              echo "OK: Found command: $cmd"
             fi
           done
 
@@ -196,10 +196,10 @@ jobs:
 
           for agent in "${agents[@]}"; do
             if [ ! -f ".claude/agents/$agent" ]; then
-              echo "❌ Missing agent: $agent"
+              echo "ERROR: Missing agent: $agent"
               exit 1
             else
-              echo "✓ Found agent: $agent"
+              echo "OK: Found agent: $agent"
             fi
           done
 
@@ -213,42 +213,37 @@ jobs:
 
       - name: Validate plugin.json
         run: |
-          python -c "
-import json
-with open('.claude-plugin/plugin.json') as f:
-    data = json.load(f)
-    assert 'name' in data, 'Missing name in plugin.json'
-    assert 'version' in data, 'Missing version in plugin.json'
-    assert 'description' in data, 'Missing description in plugin.json'
-    assert data['version'] == '2.2.0', 'Version mismatch in plugin.json'
-    print('✓ plugin.json is valid')
-"
+          python3 << 'PYTHON_SCRIPT'
+          import json
+          with open(".claude-plugin/plugin.json") as f:
+              data = json.load(f)
+              assert "name" in data, "Missing name in plugin.json"
+              assert "version" in data, "Missing version in plugin.json"
+              assert "description" in data, "Missing description in plugin.json"
+              assert data["version"] == "2.2.0", "Version mismatch in plugin.json"
+              print("OK: plugin.json is valid")
+          PYTHON_SCRIPT
 
       - name: Validate marketplace.json
         run: |
-          python -c "
-import json
-with open('.claude-plugin/marketplace.json') as f:
-    data = json.load(f)
-
-    # Validate required fields
-    assert 'name' in data, 'Missing name in marketplace.json'
-    assert ' ' not in data['name'], 'Marketplace name cannot contain spaces (use kebab-case)'
-    assert 'owner' in data, 'Missing owner in marketplace.json'
-    assert 'plugins' in data, 'Missing plugins in marketplace.json'
-    assert len(data['plugins']) > 0, 'No plugins defined in marketplace.json'
-
-    # Validate plugin source paths
-    for plugin in data['plugins']:
-        assert 'source' in plugin, f'Missing source for plugin {plugin.get(\"name\", \"unknown\")}'
-        source = plugin['source']
-        assert source == '.' or source.startswith('./'), f'Plugin source must be \".\" or start with \"./\" (got: {source})'
-
-    print('✓ marketplace.json is valid')
-    print(f'  - Marketplace: {data[\"name\"]}')
-    print(f'  - Owner: {data[\"owner\"][\"name\"]}')
-    print(f'  - Plugins: {len(data[\"plugins\"])}')
-"
+          python3 << 'PYTHON_SCRIPT'
+          import json
+          with open(".claude-plugin/marketplace.json") as f:
+              data = json.load(f)
+              assert "name" in data, "Missing name in marketplace.json"
+              assert " " not in data["name"], "Marketplace name cannot contain spaces (use kebab-case)"
+              assert "owner" in data, "Missing owner in marketplace.json"
+              assert "plugins" in data, "Missing plugins in marketplace.json"
+              assert len(data["plugins"]) > 0, "No plugins defined in marketplace.json"
+              for plugin in data["plugins"]:
+                  assert "source" in plugin, f"Missing source for plugin {plugin.get('name', 'unknown')}"
+                  source = plugin["source"]
+                  assert source == "." or source.startswith("./"), f"Plugin source must be '.' or start with './' (got: {source})"
+              print("OK: marketplace.json is valid")
+              print(f"  - Marketplace: {data['name']}")
+              print(f"  - Owner: {data['owner']['name']}")
+              print(f"  - Plugins: {len(data['plugins'])}")
+          PYTHON_SCRIPT
 
   check-docs:
     name: Check Documentation
@@ -270,10 +265,10 @@ with open('.claude-plugin/marketplace.json') as f:
           missing=0
           for doc in "${root_docs[@]}"; do
             if [ ! -f "$doc" ]; then
-              echo "❌ Missing root documentation: $doc"
+              echo "ERROR: Missing root documentation: $doc"
               missing=$((missing + 1))
             else
-              echo "✓ Found root documentation: $doc"
+              echo "OK: Found root documentation: $doc"
             fi
           done
 
@@ -294,10 +289,10 @@ with open('.claude-plugin/marketplace.json') as f:
           missing=0
           for doc in "${docs_dir[@]}"; do
             if [ ! -f "$doc" ]; then
-              echo "❌ Missing docs file: $doc"
+              echo "ERROR: Missing docs file: $doc"
               missing=$((missing + 1))
             else
-              echo "✓ Found docs file: $doc"
+              echo "OK: Found docs file: $doc"
             fi
           done
 
@@ -316,18 +311,18 @@ with open('.claude-plugin/marketplace.json') as f:
           missing=0
           for doc in "${plugin_docs[@]}"; do
             if [ ! -f "$doc" ]; then
-              echo "❌ Missing plugin documentation: $doc"
+              echo "ERROR: Missing plugin documentation: $doc"
               missing=$((missing + 1))
             else
-              echo "✓ Found plugin documentation: $doc"
+              echo "OK: Found plugin documentation: $doc"
             fi
           done
 
           if [ $missing -gt 0 ]; then
-            echo "❌ Some plugin documentation missing"
+            echo "ERROR: Some plugin documentation missing"
             exit 1
           else
-            echo "✓ All documentation present"
+            echo "OK: All documentation present"
           fi
 
   summary:
@@ -344,8 +339,8 @@ with open('.claude-plugin/marketplace.json') as f:
              [ "${{ needs.validate-agents.result }}" == "failure" ] || \
              [ "${{ needs.validate-plugin.result }}" == "failure" ] || \
              [ "${{ needs.check-docs.result }}" == "failure" ]; then
-            echo "❌ CI checks failed"
+            echo "ERROR: CI checks failed"
             exit 1
           else
-            echo "✅ All CI checks passed"
+            echo "OK: All CI checks passed"
           fi
