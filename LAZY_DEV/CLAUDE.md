@@ -73,24 +73,29 @@ USER-STORY (single file with inline tasks)
 - ✅ Code review only for complex/critical tasks
 - ❌ Never create PRs for individual tasks
 
-### Quality Pipeline (Flexible)
+### Quality Pipeline (Automated)
 
-Task execution applies quality checks based on project configuration:
+Quality checks run automatically via PostToolUse hook after Write/Edit operations:
 
 ```
-Format (if configured) → Lint (if configured) → Type (if configured) → Test (if TDD required)
-      ↓                     ↓                      ↓                      ↓
-    PASS/SKIP            PASS/SKIP              PASS/SKIP              PASS/SKIP
-                                                                          ↓
-                                                                    Git Commit Allowed
+Write/Edit Code
+      ↓
+PostToolUse Hook Fires
+      ↓
+Format → Lint → Type → Tests (if TDD)
+   ↓       ↓      ↓        ↓
+ AUTO   WARN   WARN     WARN
+                           ↓
+                    Ready for Commit
 ```
 
-**Flexibility:**
-- **TDD**: Only enforced if mentioned in README/CLAUDE.md
-- **Tests**: Skip with `--skip-tests` if not required
-- **Review**: Skip with `--skip-review` for simple tasks
-- **Type checking**: Only runs if mypy/tsc configured
-- **Linting**: Only runs if ruff/eslint configured
+**Automation:**
+- **Format**: Auto-applied (Black/Ruff/Prettier if configured)
+- **Lint**: Auto-checked, warns if issues (Ruff/ESLint if configured)
+- **Type**: Auto-checked, warns if issues (Mypy/TSC if configured)
+- **Tests**: Auto-run only if TDD required in project (Pytest/Jest)
+- **Hook-driven**: No manual execution needed
+- **Non-blocking**: Warns but doesn't block (except critical failures)
 
 ---
 
@@ -176,7 +181,8 @@ Enriched prompt passed to command
 **Fires:** After tool operations complete
 
 **Purpose:**
-- Auto-formatting (Black/Ruff)
+- Auto-formatting (Black/Ruff/Prettier if configured)
+- Quality checks (lint, type, tests if TDD)
 - Memory persistence suggestions
 - Metric collection
 
@@ -184,9 +190,13 @@ Enriched prompt passed to command
 ```
 After Write/Edit tool:
      ↓
-Hook runs Black/Ruff formatter (if configured)
+Hook runs formatter (Black/Ruff)
      ↓
-Code is auto-formatted
+Hook runs quality checks (lint → type → tests)
+     ↓
+Code is formatted and validated
+     ↓
+Warnings shown if issues found
 ```
 
 ### 3. Stop Hook

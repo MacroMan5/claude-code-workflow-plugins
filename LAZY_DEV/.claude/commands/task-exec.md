@@ -122,36 +122,15 @@ You are the Coder Agent for LAZY-DEV-FRAMEWORK.
 )
 ```
 
-### Phase 4: Quality Pipeline (Flexible)
+### Phase 4: Quality Checks (Automated via Hook)
 
-**Check if quality tools exist** before running:
+**Quality checks run automatically via PostToolUse hook**:
+- Format: Black/Ruff/Prettier (if configured)
+- Lint: Ruff/ESLint (if configured)
+- Type: Mypy/TSC (if configured)
+- Tests: Pytest/Jest (if TDD required in project)
 
-```bash
-# Format (if Black/Ruff/Prettier exist)
-if [ -f "scripts/format.py" ] || command -v black &> /dev/null; then
-    python scripts/format.py . || black .
-fi
-
-# Lint (if configured)
-if [ -f "scripts/lint.py" ] || [ -f ".ruff.toml" ]; then
-    python scripts/lint.py . || ruff check .
-fi
-
-# Type check (if mypy/tsc configured)
-if [ -f "mypy.ini" ] || [ -f "tsconfig.json" ]; then
-    python scripts/type_check.py . || mypy .
-fi
-
-# Tests (only if TDD mentioned in repo)
-tdd_required=false
-if grep -rq "TDD\|test-driven\|pytest\|jest" README.md CLAUDE.md .github/; then
-    tdd_required=true
-fi
-
-if [ "$tdd_required" = true ] && [ "$skip_tests" != "true" ]; then
-    pytest tests/ --cov --cov-fail-under=80
-fi
-```
+**No manual execution needed** - hooks handle this automatically after Write/Edit operations.
 
 ### Phase 5: Review (Conditional)
 
