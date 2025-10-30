@@ -1,0 +1,60 @@
+{
+  "hooks": [
+    {
+      "name": "user_prompt_submit",
+      "type": "UserPromptSubmit",
+      "command": "python",
+      "args": ["hooks/user_prompt_submit.py"],
+      "description": "Pre-prompt enrichment with context packs, output style selection, and memory auto-detection"
+    },
+    {
+      "name": "pre_tool_use",
+      "type": "PreToolUse",
+      "command": "python",
+      "args": ["hooks/pre_tool_use.py"],
+      "description": "Safety checks before tool execution (prevent rm -rf, force-push to main, etc.)"
+    },
+    {
+      "name": "post_tool_use_format",
+      "type": "PostToolUse",
+      "command": "python",
+      "args": ["hooks/post_tool_use_format.py"],
+      "description": "Auto-formatting with Black/Ruff after file operations"
+    },
+    {
+      "name": "memory_suggestions",
+      "type": "PostToolUse",
+      "command": "python",
+      "args": ["hooks/memory_suggestions.py"],
+      "description": "Suggest memory persistence for durable facts"
+    },
+    {
+      "name": "memory_router",
+      "type": "PostToolUse",
+      "command": "python",
+      "args": ["hooks/memory_router.py"],
+      "description": "Route memory persistence to MCP Memory graph"
+    },
+    {
+      "name": "log_events",
+      "type": "PostToolUse",
+      "command": "python",
+      "args": ["hooks/log_events.py"],
+      "description": "Log all tool events for audit trail"
+    },
+    {
+      "name": "session_start",
+      "type": "SessionStart",
+      "command": "python",
+      "args": ["hooks/session_start.py"],
+      "description": "Initialize session context and inject relevant memories"
+    },
+    {
+      "name": "stop",
+      "type": "Stop",
+      "command": "python",
+      "args": ["hooks/stop.py"],
+      "description": "Quality gate logging, TDD enforcement validation, and metrics collection"
+    }
+  ]
+}

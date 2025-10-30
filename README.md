@@ -4,6 +4,11 @@
 
 **Version**: 2.0.0 | **License**: MIT | **Status**: Production-Ready
 
+[![GitHub](https://img.shields.io/badge/GitHub-MacroMan5%2Fclaude--code--workflow--plugins-blue)](https://github.com/MacroMan5/claude-code-workflow-plugins)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/MacroMan5/claude-code-workflow-plugins/releases)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet.svg)](https://docs.claude.com/en/docs/claude-code)
+
 ---
 
 ## Quick Start
@@ -108,10 +113,15 @@ Automate the mundane (formatting, commits, PRs) while enforcing discipline (qual
 cp -r LAZY_DEV/.claude/ .claude/
 ```
 
-Or via plugin marketplace (when available):
+Or via plugin marketplace:
 ```bash
-/plugin marketplace add therouxe/lazy-marketplace
-/plugin install lazy@lazy-marketplace
+# Add marketplace
+/plugin marketplace add MacroMan5/claude-code-workflow-plugins
+
+# Install plugin
+/plugin install lazy-dev@MacroMan5
+
+# Restart Claude Code
 ```
 
 ### Step 2: Set Environment Variables
@@ -445,12 +455,17 @@ gh auth login && gh auth status
 - [Claude Code Documentation](https://docs.claude.com/claude-code)
 - [MCP Memory Protocol](https://github.com/modelcontextprotocol/servers/tree/main/src/memory)
 
-**Credits**
-- Anthropic Claude Code (official patterns)
+**Credits & Inspiration**
+- Anthropic Claude Code (official patterns and best practices)
 - Model Context Protocol (MCP Memory)
-- obra/superpowers (automation inspiration)
-- KoljaB/RealtimeSTT (STT pipeline)
-- disler/claude-code-hooks-* (multi-agent patterns)
+- IndyDevDan/disler (Claude Code hooks mastery, multi-agent observability, big-3-super-agent)
+- vanzan01 (claude-code-sub-agent-collective, TDD patterns)
+- EveryInc (plugin marketplace, compounding engineering)
+- Kolja Beigel/KoljaB (RealtimeSTT library)
+- SYSTRAN (faster-whisper)
+- Community projects (always-on-ai-assistant)
+
+See [CREDITS.md](./CREDITS.md) for detailed attributions.
 
 ---
 
