@@ -42,15 +42,13 @@ def type_check(path: str, session_id: Optional[str] = None) -> int:
         "script": "type_check.py",
         "path": str(path_obj),
         "session_id": session_id,
-        "errors": []
+        "errors": [],
     }
 
     print(f"[TYPE] Running Mypy on {path}...")
     start_time = datetime.utcnow()
     result = subprocess.run(
-        ["mypy", str(path_obj), "--strict"],
-        capture_output=True,
-        text=True
+        ["mypy", str(path_obj), "--strict"], capture_output=True, text=True
     )
     duration = (datetime.utcnow() - start_time).total_seconds()
 
@@ -95,16 +93,20 @@ def _parse_mypy_errors(output: str) -> List[dict]:
         [{'file': 'src/auth.py', 'line': '42', 'column': '12', 'message': '...'}]
     """
     errors = []
-    for line in output.split('\n'):
-        if ':' in line and 'error:' in line:
-            parts = line.split(':')
+    for line in output.split("\n"):
+        if ":" in line and "error:" in line:
+            parts = line.split(":")
             if len(parts) >= 4:
-                errors.append({
-                    "file": parts[0].strip(),
-                    "line": parts[1].strip(),
-                    "column": parts[2].strip() if parts[2].strip().isdigit() else None,
-                    "message": ':'.join(parts[3:]).replace('error:', '').strip()
-                })
+                errors.append(
+                    {
+                        "file": parts[0].strip(),
+                        "line": parts[1].strip(),
+                        "column": (
+                            parts[2].strip() if parts[2].strip().isdigit() else None
+                        ),
+                        "message": ":".join(parts[3:]).replace("error:", "").strip(),
+                    }
+                )
     return errors
 
 
@@ -129,12 +131,12 @@ def _write_log(log_entry: dict, session_id: Optional[str]) -> None:
     # Append to existing log
     logs = []
     if log_file.exists():
-        with open(log_file, 'r') as f:
+        with open(log_file, "r") as f:
             logs = json.load(f)
 
     logs.append(log_entry)
 
-    with open(log_file, 'w') as f:
+    with open(log_file, "w") as f:
         json.dump(logs, f, indent=2)
 
 

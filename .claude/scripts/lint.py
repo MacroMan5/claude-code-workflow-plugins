@@ -43,7 +43,7 @@ def lint_code(path: str, session_id: Optional[str] = None) -> int:
         "path": str(path_obj),
         "session_id": session_id,
         "violations": [],
-        "auto_fixed": []
+        "auto_fixed": [],
     }
 
     print(f"[LINT] Running Ruff check on {path}...")
@@ -51,7 +51,7 @@ def lint_code(path: str, session_id: Optional[str] = None) -> int:
     result = subprocess.run(
         ["ruff", "check", str(path_obj), "--fix", "--output-format=json"],
         capture_output=True,
-        text=True
+        text=True,
     )
     duration = (datetime.utcnow() - start_time).total_seconds()
 
@@ -66,7 +66,9 @@ def lint_code(path: str, session_id: Optional[str] = None) -> int:
             if violations:
                 print(f"Found {len(violations)} violations")
                 for violation in violations[:5]:  # Show first 5
-                    print(f"  {violation.get('code', 'UNKNOWN')}: {violation.get('message', 'No message')}")
+                    print(
+                        f"  {violation.get('code', 'UNKNOWN')}: {violation.get('message', 'No message')}"
+                    )
                 if len(violations) > 5:
                     print(f"  ... and {len(violations) - 5} more")
         except json.JSONDecodeError:
@@ -106,12 +108,12 @@ def _write_log(log_entry: dict, session_id: Optional[str]) -> None:
     # Append to existing log
     logs = []
     if log_file.exists():
-        with open(log_file, 'r') as f:
+        with open(log_file, "r") as f:
             logs = json.load(f)
 
     logs.append(log_entry)
 
-    with open(log_file, 'w') as f:
+    with open(log_file, "w") as f:
         json.dump(logs, f, indent=2)
 
 

@@ -43,25 +43,25 @@ def format_code(path: str, session_id: Optional[str] = None) -> int:
         "script": "format.py",
         "path": str(path_obj),
         "session_id": session_id,
-        "steps": []
+        "steps": [],
     }
 
     print(f"[FORMAT] Running Black on {path}...")
     start_time = datetime.utcnow()
     black_result = subprocess.run(
-        ["black", str(path_obj)],
-        capture_output=True,
-        text=True
+        ["black", str(path_obj)], capture_output=True, text=True
     )
     black_duration = (datetime.utcnow() - start_time).total_seconds()
 
-    log_entry["steps"].append({
-        "tool": "black",
-        "duration_seconds": black_duration,
-        "exit_code": black_result.returncode,
-        "stdout": black_result.stdout,
-        "stderr": black_result.stderr
-    })
+    log_entry["steps"].append(
+        {
+            "tool": "black",
+            "duration_seconds": black_duration,
+            "exit_code": black_result.returncode,
+            "stdout": black_result.stdout,
+            "stderr": black_result.stderr,
+        }
+    )
 
     if black_result.returncode != 0:
         print(f"[ERROR] Black failed:\n{black_result.stderr}")
@@ -71,19 +71,19 @@ def format_code(path: str, session_id: Optional[str] = None) -> int:
     print(f"[FORMAT] Running Ruff format on {path}...")
     start_time = datetime.utcnow()
     ruff_result = subprocess.run(
-        ["ruff", "format", str(path_obj)],
-        capture_output=True,
-        text=True
+        ["ruff", "format", str(path_obj)], capture_output=True, text=True
     )
     ruff_duration = (datetime.utcnow() - start_time).total_seconds()
 
-    log_entry["steps"].append({
-        "tool": "ruff",
-        "duration_seconds": ruff_duration,
-        "exit_code": ruff_result.returncode,
-        "stdout": ruff_result.stdout,
-        "stderr": ruff_result.stderr
-    })
+    log_entry["steps"].append(
+        {
+            "tool": "ruff",
+            "duration_seconds": ruff_duration,
+            "exit_code": ruff_result.returncode,
+            "stdout": ruff_result.stdout,
+            "stderr": ruff_result.stderr,
+        }
+    )
 
     if ruff_result.returncode != 0:
         print(f"[ERROR] Ruff format failed:\n{ruff_result.stderr}")
@@ -117,12 +117,12 @@ def _write_log(log_entry: dict, session_id: Optional[str]) -> None:
     # Append to existing log
     logs = []
     if log_file.exists():
-        with open(log_file, 'r') as f:
+        with open(log_file, "r") as f:
             logs = json.load(f)
 
     logs.append(log_entry)
 
-    with open(log_file, 'w') as f:
+    with open(log_file, "w") as f:
         json.dump(logs, f, indent=2)
 
 

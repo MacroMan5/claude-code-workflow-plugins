@@ -193,6 +193,48 @@ def initialize_session_state(session_id: str, context: dict) -> None:
         logger.warning(f"Unexpected error writing session file: {type(e).__name__}")
 
 
+def ensure_memory_directory() -> None:
+    """
+    Auto-create .claude/memory/ directory if it doesn't exist.
+    This ensures MCP Memory server has a place to store data.
+    """
+    memory_dir = Path(".claude/memory")
+    if not memory_dir.exists():
+        try:
+            memory_dir.mkdir(parents=True, exist_ok=True)
+            logger.info("Created .claude/memory/ directory for MCP Memory")
+        except OSError as e:
+            logger.warning(f"Failed to create memory directory: {type(e).__name__}")
+
+
+def check_environment_variables() -> dict:
+    """
+    Check required environment variables and warn if missing.
+
+    Returns:
+        Dictionary with environment variable status
+    """
+    status = {}
+
+    # Check ENRICHMENT_MODEL (required for pre-prompt enrichment)
+    enrichment_model = os.getenv("ENRICHMENT_MODEL")
+    if not enrichment_model:
+        status["ENRICHMENT_MODEL"] = "missing"
+        logger.warning(
+            "⚠️  ENRICHMENT_MODEL not set. Pre-prompt enrichment will not work."
+        )
+        logger.warning("   Set it with: export ENRICHMENT_MODEL=claude-3-5-haiku")
+    else:
+        status["ENRICHMENT_MODEL"] = enrichment_model
+        logger.info(f"✓ ENRICHMENT_MODEL: {enrichment_model}")
+
+    # Check MEMORY_FILE_PATH (optional, has default)
+    memory_path = os.getenv("MEMORY_FILE_PATH", ".claude/memory/memory.jsonl")
+    status["MEMORY_FILE_PATH"] = memory_path
+
+    return status
+
+
 def log_session_start(session_id: str, context: dict) -> None:
     """
     Log session start event.
@@ -238,6 +280,12 @@ def log_session_start(session_id: str, context: dict) -> None:
 def main():
     """Hook entry point."""
     try:
+        # Auto-create memory directory (new feature)
+        ensure_memory_directory()
+
+        # Check environment variables (new feature)
+        env_status = check_environment_variables()
+
         # Read JSON input from stdin
         input_data = json.load(sys.stdin)
 
@@ -279,10 +327,10 @@ def main():
         # Also print user-friendly message to stderr (visible in console)
         print("\n=== LAZY-DEV-FRAMEWORK Session Started ===", file=sys.stderr)
         print(f"Session ID: {session_id}", file=sys.stderr)
-        print(f'PRD loaded: {"✓" if context["prd"] else "✗"}', file=sys.stderr)
-        print(f'TASKS loaded: {"✓" if context["tasks"] else "✗"}', file=sys.stderr)
-        print(f'Git branch: {context["branch"] or "N/A"}', file=sys.stderr)
-        print(f'Git history: {len(context["git_history"])} commits', file=sys.stderr)
+        print(f"PRD loaded: {'✓' if context['prd'] else '✗'}", file=sys.stderr)
+        print(f"TASKS loaded: {'✓' if context['tasks'] else '✗'}", file=sys.stderr)
+        print(f"Git branch: {context['branch'] or 'N/A'}", file=sys.stderr)
+        print(f"Git history: {len(context['git_history'])} commits", file=sys.stderr)
         print("==========================================\n", file=sys.stderr)
 
         sys.exit(0)

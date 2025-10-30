@@ -105,23 +105,23 @@ def format_path(target: Path, session_id: Optional[str]) -> int:
     ensure_path(target)
     step_results: list[StepResult] = []
 
-    print(f"📝 Running Black on {target}...")
-    black_result = run_subprocess(["black", str(target)])
+    print(f"Running Black on {target}...")
+    black_result = run_subprocess([sys.executable, "-m", "black", str(target)])
     step_results.append(black_result)
     if black_result.exit_code != 0:
-        print(f"❌ Black failed:\n{black_result.stderr}", file=sys.stderr)
+        print(f"Black failed:\n{black_result.stderr}", file=sys.stderr)
         write_log(step_results, target, session_id)
         return black_result.exit_code
 
-    print(f"📝 Running Ruff format on {target}...")
-    ruff_result = run_subprocess(["ruff", "format", str(target)])
+    print(f"Running Ruff format on {target}...")
+    ruff_result = run_subprocess([sys.executable, "-m", "ruff", "format", str(target)])
     step_results.append(ruff_result)
     if ruff_result.exit_code != 0:
-        print(f"❌ Ruff format failed:\n{ruff_result.stderr}", file=sys.stderr)
+        print(f"Ruff format failed:\n{ruff_result.stderr}", file=sys.stderr)
         write_log(step_results, target, session_id)
         return ruff_result.exit_code
 
-    print("✅ Formatting complete")
+    print("Formatting complete")
     write_log(step_results, target, session_id)
     return 0
 
@@ -146,10 +146,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return format_path(target, args.session_id)
     except FileNotFoundError as exc:
-        print(f"❌ {exc}", file=sys.stderr)
+        print(f"Error: {exc}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:
-        print("⚠️ Formatting interrupted", file=sys.stderr)
+        print("Warning: Formatting interrupted", file=sys.stderr)
         return 130
 
 

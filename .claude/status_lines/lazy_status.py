@@ -8,10 +8,12 @@ Shows:
 - MCP memory configuration presence (workspace .mcp.json or template)
 - basic runtime availability hints (npx present)
 """
+
 from __future__ import annotations
 import json, os, shutil
 from pathlib import Path
 from datetime import datetime
+
 
 def detect_mcp_config() -> dict:
     cwd = Path.cwd()
@@ -30,11 +32,18 @@ def detect_mcp_config() -> dict:
             pass
     return {"configured": configured, "has_memory": has_memory, "npx": npx_ok}
 
+
 def main() -> None:
     model = os.getenv("ENRICHMENT_MODEL")
     mcp = detect_mcp_config()
-    payload = {"lazy": "ok", "model": model or "default", "mcp": mcp, "time": datetime.now().strftime("%H:%M")}
+    payload = {
+        "lazy": "ok",
+        "model": model or "default",
+        "mcp": mcp,
+        "time": datetime.now().strftime("%H:%M"),
+    }
     print(json.dumps(payload, separators=(",", ":")))
+
 
 if __name__ == "__main__":
     main()
