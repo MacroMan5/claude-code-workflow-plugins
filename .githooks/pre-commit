@@ -1,0 +1,132 @@
+#!/usr/bin/env python
+"""
+Pre-commit hook for LAZY-DEV Framework.
+
+Automatically formats all staged files before commit:
+- Python files: Black + Ruff
+- JavaScript/TypeScript: Prettier (if available)
+- Prevents unformatted code from being committed
+
+Installation:
+    git config core.hooksPath .githooks
+"""
+
+import subprocess
+import sys
+from pathlib import Path
+
+
+def get_staged_files():
+    """Get list of staged files."""
+    result = subprocess.run(
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return []
+    return [f for f in result.stdout.strip().split("\n") if f]
+
+
+def format_python_files(files):
+    """Format Python files with Black and Ruff."""
+    py_files = [f for f in files if f.endswith(".py")]
+    if not py_files:
+        return True
+
+    print(f"Formatting {len(py_files)} Python file(s)...")
+
+    # Run Black
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "black", "--quiet"] + py_files,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            print(f"Black formatting failed: {result.stderr}")
+            return False
+    except (subprocess.SubprocessError, FileNotFoundError):
+        print("Warning: Black not available, skipping Python formatting")
+
+    # Run Ruff format
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "ruff", "format"] + py_files,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            print(f"Ruff formatting failed: {result.stderr}")
+            return False
+    except (subprocess.SubprocessError, FileNotFoundError):
+        print("Warning: Ruff not available, skipping Python formatting")
+
+    # Re-stage formatted files
+    subprocess.run(["git", "add"] + py_files)
+    print(f"[OK] Formatted {len(py_files)} Python file(s)")
+    return True
+
+
+def format_js_files(files):
+    """Format JavaScript/TypeScript files with Prettier."""
+    js_files = [
+        f
+        for f in files
+        if f.endswith((".js", ".jsx", ".ts", ".tsx", ".json", ".yml", ".yaml", ".md"))
+    ]
+    if not js_files:
+        return True
+
+    print(f"Formatting {len(js_files)} JS/TS/JSON/Markdown file(s)...")
+
+    try:
+        result = subprocess.run(
+            ["npx", "-y", "prettier", "--write", "--loglevel", "error"] + js_files,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if result.returncode != 0:
+            print(f"Prettier formatting failed: {result.stderr}")
+            return False
+
+        # Re-stage formatted files
+        subprocess.run(["git", "add"] + js_files)
+        print(f"[OK] Formatted {len(js_files)} file(s) with Prettier")
+    except (subprocess.SubprocessError, FileNotFoundError):
+        print("Warning: Prettier not available, skipping JS/TS/Markdown formatting")
+
+    return True
+
+
+def main():
+    """Run pre-commit checks and formatting."""
+    print("Running pre-commit formatting...")
+
+    # Get staged files
+    staged_files = get_staged_files()
+    if not staged_files:
+        print("No staged files to format")
+        return 0
+
+    print(f"Checking {len(staged_files)} staged file(s)...")
+
+    # Format Python files
+    if not format_python_files(staged_files):
+        print("[FAIL] Python formatting failed")
+        return 1
+
+    # Format JS/TS/JSON/Markdown files
+    if not format_js_files(staged_files):
+        print("[FAIL] JS/TS formatting failed")
+        return 1
+
+    print("[SUCCESS] All files formatted successfully")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
