@@ -177,6 +177,16 @@ def format_file(file_path: str) -> dict:
 
     suffix = path.suffix.lower()
 
+    # Skip documentation files (no formatting needed)
+    if suffix in [".md", ".txt", ".rst", ".adoc", ".json"]:
+        return {
+            "formatted": False,
+            "file": file_path,
+            "type": "documentation",
+            "message": "Skipped (documentation file)"
+        }
+
+
     # Python files
     if suffix == '.py':
         success, message = format_python(path)

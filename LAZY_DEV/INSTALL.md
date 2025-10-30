@@ -42,7 +42,7 @@ $env:ENRICHMENT_MODEL = "claude-3-5-haiku"
 /lazy memory-check
 
 # Create your first feature
-/lazy create-feature "Add user authentication"
+/lazy plan "Add user authentication"
 ```
 
 ---

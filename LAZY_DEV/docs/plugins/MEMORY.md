@@ -8,21 +8,22 @@ Automatic Memory System - Persistent Knowledge Management with MCP Memory
 
 1. [Overview](#overview)
 2. [Implementation Status](#implementation-status)
-3. [How Auto-Memory Works](#how-auto-memory-works)
-4. [What Gets Stored](#what-gets-stored)
-5. [Memory Graph Structure](#memory-graph-structure)
-6. [Automatic Triggers](#automatic-triggers)
-7. [Manual Memory Management](#manual-memory-management)
-8. [Memory-Driven Context Injection](#memory-driven-context-injection)
-9. [Configuration](#configuration)
-10. [Best Practices](#best-practices)
-11. [Troubleshooting](#troubleshooting)
+3. [Project-Specific Memory Storage](#project-specific-memory-storage)
+4. [How Auto-Memory Works](#how-auto-memory-works)
+5. [What Gets Stored](#what-gets-stored)
+6. [Memory Graph Structure](#memory-graph-structure)
+7. [Automatic Triggers](#automatic-triggers)
+8. [Manual Memory Management](#manual-memory-management)
+9. [Memory-Driven Context Injection](#memory-driven-context-injection)
+10. [Configuration](#configuration)
+11. [Best Practices](#best-practices)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Overview
 
-LAZY_DEV integrates with **MCP (Model Context Protocol) Memory** to create a persistent knowledge graph that grows and evolves across sessions.
+LAZY_DEV integrates with **MCP (Model Context Protocol) Memory** to create a persistent, project-isolated knowledge graph that grows and evolves across sessions.
 
 ### The Problem
 
@@ -31,6 +32,7 @@ Traditional AI-assisted development suffers from:
 - ❌ Constant re-prompting of team conventions
 - ❌ Repeated explanations of architecture decisions
 - ❌ No memory of service ownership or dependencies
+- ❌ Global memory pollution across multiple projects
 
 ### The LAZY_DEV Solution
 
@@ -43,13 +45,94 @@ Session 1: User mentions "service:payment owned_by:alice"
               ↓
            You use MCP tools to store
               ↓
-Session 2: Working on payment service
+Session 2: Working on payment service (same project)
               ↓
            Hook injects memory skill guidance
               ↓
            You query: mcp__memory__search_nodes
               ↓
            Context retrieved: "Alice owns payment service"
+
+Different Project:
+              ↓
+           Memory isolated per project
+              ↓
+           No cross-project pollution
+```
+
+---
+
+## Project-Specific Memory Storage
+
+### How It Works
+
+LAZY_DEV stores memory in a project-specific location to avoid conflicts across different projects.
+
+**Storage Location:**
+```
+<PROJECT_ROOT>/.claude/memory/memory.jsonl
+```
+
+**Environment Variable:**
+```bash
+MEMORY_FILE_PATH=.claude/memory/memory.jsonl
+```
+
+**Key Features:**
+
+1. **Project Isolation**
+   - Each project has its own memory database
+   - Switching projects automatically uses project-specific memory
+   - No cross-project knowledge pollution
+
+2. **Persistence**
+   - Memory persists across sessions within the same project
+   - Knowledge graph grows over time
+   - Survives restarts and editor sessions
+
+3. **Portability**
+   - Git-compatible (can be tracked in version control)
+   - Shared with team via repository
+   - Easy to backup and restore
+
+### MCP Configuration
+
+**File:** `.claude/.mcp.json`
+
+```json
+{
+  "mcpServers": {
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {
+        "MEMORY_FILE_PATH": ".claude/memory/memory.jsonl"
+      }
+    }
+  }
+}
+```
+
+**How It Works:**
+
+1. **Startup:** Claude Code reads `.mcp.json`
+2. **Environment:** Sets `MEMORY_FILE_PATH` for the MCP server
+3. **Storage:** MCP Memory stores to `.claude/memory/memory.jsonl`
+4. **Isolation:** Each project's `.claude/` directory has its own memory
+5. **Persistence:** Knowledge survives across sessions
+
+### Directory Structure
+
+```
+project-root/
+├── .claude/
+│   ├── memory/
+│   │   └── memory.jsonl       # Project-specific knowledge graph
+│   ├── .mcp.json              # MCP config with MEMORY_FILE_PATH
+│   ├── agents/
+│   ├── commands/
+│   └── hooks/
+└── ...
 ```
 
 ---
@@ -60,6 +143,7 @@ Session 2: Working on payment service
 
 **MCP Memory Server Integration:**
 - ✅ `.claude/.mcp.json` configured for `@modelcontextprotocol/server-memory`
+- ✅ `MEMORY_FILE_PATH` environment variable for project isolation
 - ✅ All MCP memory tools available: `mcp__memory__*`
 
 **Auto-Detection Hooks:**
@@ -70,10 +154,16 @@ Session 2: Working on payment service
 - ✅ `.claude/skills/memory-graph/` - Complete skill documentation
 - ✅ Operations guide, playbooks, examples
 
+**Project Isolation:**
+- ✅ Per-project memory storage in `.claude/memory/memory.jsonl`
+- ✅ Environment variable configuration
+- ✅ No global memory pollution
+
 **What This Means:**
 - Memory storage is **available** via MCP tools
 - Hooks **detect** durable facts and **suggest** actions
 - You must **manually invoke** MCP tools (Claude Code calls them for you when prompted)
+- Memory is **isolated per project**
 
 ### ⚠️ What's Semi-Automated
 
@@ -128,10 +218,10 @@ Claude Code: [Sees guidance, decides to store]
      ↓
 Claude Code: mcp__memory__create_entities(...)
      ↓
-MCP Memory: [Stores to graph]
-     ✅ Persisted!
+MCP Memory: [Stores to .claude/memory/memory.jsonl]
+     ✅ Persisted (project-isolated)!
 
-Next Session:
+Next Session (same project):
 You: "Update payment service"
      ↓
 Hook: [Detects entity mention, injects skill guidance]
@@ -148,6 +238,7 @@ Claude Code: [Uses context in implementation]
 - ✅ Guidance is automatic (skill injection)
 - ⚠️ Storage/retrieval requires Claude Code to invoke MCP tools
 - ✅ Works well in practice (Claude Code is smart about using tools)
+- ✅ Project-isolated (no cross-project pollution)
 
 ---
 
@@ -222,9 +313,9 @@ Claude Code decides to store
    ↓
 Claude Code calls: mcp__memory__create_entities
    ↓
-MCP Memory server stores
+MCP Memory server stores to .claude/memory/memory.jsonl
    ↓
-✅ Memory persisted
+✅ Memory persisted (project-isolated)
 ```
 
 **Example Tool Call:**
@@ -268,7 +359,7 @@ Injects Memory Graph skill guidance
    ↓
 Claude Code queries: mcp__memory__search_nodes
    ↓
-MCP returns relevant entities
+MCP returns relevant entities from .claude/memory/memory.jsonl
    ↓
 Claude Code uses context in implementation
 ```
@@ -483,7 +574,7 @@ Show suggestion + countdown
     ↓
 5 seconds elapsed
     ↓
-Store to MCP Memory
+Store to MCP Memory (.claude/memory/memory.jsonl)
     ↓
 Continue with command
 ```
@@ -643,11 +734,19 @@ Service: payment
   "mcpServers": {
     "memory": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-memory"]
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {
+        "MEMORY_FILE_PATH": ".claude/memory/memory.jsonl"
+      }
     }
   }
 }
 ```
+
+**Key Points:**
+- `MEMORY_FILE_PATH` points to project-specific location
+- Each project has its own `.claude/memory/` directory
+- Memory is automatically isolated per project
 
 **Install Node.js (Required):**
 
@@ -677,6 +776,9 @@ npx -y @modelcontextprotocol/server-memory
 ```bash
 # Optional: Disable auto-memory
 export LAZYDEV_DISABLE_MEMORY_SKILL=1
+
+# Optional: Project-specific memory path
+export MEMORY_FILE_PATH=.claude/memory/memory.jsonl
 
 # Optional: Adjust auto-store countdown
 export LAZYDEV_MEMORY_COUNTDOWN=10  # seconds (default: 5)
@@ -793,11 +895,14 @@ npx -y @modelcontextprotocol/server-memory
 # 2. Check MCP configuration
 cat .claude/.mcp.json
 
-# 3. Verify hook exists and is executable
+# 3. Verify memory directory exists
+ls -la .claude/memory/
+
+# 4. Verify hook exists and is executable
 ls -la .claude/hooks/user_prompt_submit.py
 chmod +x .claude/hooks/user_prompt_submit.py
 
-# 4. Check if disabled
+# 5. Check if disabled
 echo $LAZYDEV_DISABLE_MEMORY_SKILL
 ```
 
@@ -844,8 +949,12 @@ npx -y @modelcontextprotocol/server-memory
 # 4. Check firewall/antivirus
 # May block local server connections
 
-# 5. Try alternative port
-# Edit .claude/.mcp.json if port conflicts
+# 5. Verify memory file path
+# Check MEMORY_FILE_PATH environment variable
+echo $MEMORY_FILE_PATH
+
+# 6. Check memory directory permissions
+chmod -R 755 .claude/memory/
 ```
 
 ---
@@ -867,28 +976,55 @@ npx -y @modelcontextprotocol/server-memory
 # Edit .claude/skills/mcp-memory-router.md
 
 # 4. Clear and rebuild (last resort)
-# Backup, delete MCP data, rebuild
+# Backup, delete .claude/memory/memory.jsonl, rebuild
+```
+
+---
+
+### Project-Specific Memory Issues
+
+**Symptoms:** Memory from other projects appearing, or memories not accessible in current project
+
+**Checks:**
+
+```bash
+# 1. Verify correct .mcp.json location
+cat .claude/.mcp.json
+
+# 2. Check MEMORY_FILE_PATH in .mcp.json
+# Should point to .claude/memory/memory.jsonl
+
+# 3. Verify memory file location
+ls -la .claude/memory/memory.jsonl
+
+# 4. Ensure Claude Code is using correct .claude directory
+# Each project should have its own .claude/ folder
 ```
 
 ---
 
 ## Advanced Usage
 
-### Multi-Project Memory
+### Multi-Project Memory (Isolated)
 
-**Scenario:** Work on multiple projects with shared context
+**Scenario:** Work on multiple projects with separate memories
 
-**Solution: Project Namespacing**
+**How It Works:**
 
 ```bash
 # Project A
-/lazy memory-graph "project:acme service:payment owned_by:alice"
+# .claude/.mcp.json → MEMORY_FILE_PATH=.claude/memory/memory.jsonl
+# Memory stored in: /ProjectA/.claude/memory/memory.jsonl
 
-# Project B
-/lazy memory-graph "project:widgets service:payment owned_by:bob"
+/lazy memory-graph "service:payment owned_by:alice"
 
-# Query specific project
-# Memory auto-filters by current project context
+# Switch to Project B
+# .claude/.mcp.json → MEMORY_FILE_PATH=.claude/memory/memory.jsonl
+# Memory stored in: /ProjectB/.claude/memory/memory.jsonl
+
+/lazy memory-graph "service:payment owned_by:bob"
+
+# Each project has isolated memory - no conflicts!
 ```
 
 ---
@@ -900,16 +1036,21 @@ npx -y @modelcontextprotocol/server-memory
 **Solution: Git-Tracked Memory**
 
 ```bash
-# Export memory to JSON
-/lazy memory-export > .claude/memory-snapshot.json
-
-# Commit to git
-git add .claude/memory-snapshot.json
+# Commit memory to version control
+git add .claude/memory/memory.jsonl
 git commit -m "docs: update team memory snapshot"
 
-# Other team members import
-/lazy memory-import .claude/memory-snapshot.json
+# Other team members automatically get memory
+# via git clone or pull
+
+# Memory persists across the team
 ```
+
+**Benefits:**
+- Knowledge graph tracked in git
+- Team can collaborate on shared memory
+- Historical version tracking
+- Easy onboarding of new team members
 
 ---
 
@@ -943,13 +1084,16 @@ async def create_payment(request: PaymentRequest, timeout: int = 30):
 
 1. ✅ **Auto-Detection** → UserPromptSubmit hook detects durable facts
 2. ✅ **Auto-Storage** → 5-second countdown, stores to MCP Memory
-3. ✅ **Auto-Retrieval** → Relevant memories queried on keywords
-4. ✅ **Auto-Injection** → Context injected into prompts
-5. ✅ **No Re-Prompting** → Knowledge persists across sessions
+3. ✅ **Project-Isolated** → Memory stored in `.claude/memory/memory.jsonl`
+4. ✅ **Auto-Retrieval** → Relevant memories queried on keywords
+5. ✅ **Auto-Injection** → Context injected into prompts
+6. ✅ **No Re-Prompting** → Knowledge persists across sessions
+7. ✅ **No Cross-Project Pollution** → Each project has isolated memory
 
 ### Key Benefits
 
 - **Persistent Context** - Never lose important facts
+- **Project-Isolated** - Multiple projects with separate knowledge graphs
 - **Zero Overhead** - Automatic detection and storage
 - **Smart Retrieval** - Only relevant context injected
 - **Team Shared** - Knowledge shared via git
@@ -957,4 +1101,4 @@ async def create_payment(request: PaymentRequest, timeout: int = 30):
 
 ---
 
-**LAZY_DEV Memory** - Knowledge that persists, context that grows.
+**LAZY_DEV Memory** - Knowledge that persists, context that grows, projects that stay isolated.

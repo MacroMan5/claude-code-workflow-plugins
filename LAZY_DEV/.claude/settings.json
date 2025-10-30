@@ -133,52 +133,52 @@
   },
   "commands": [
     {
-      "name": "create-feature",
-      "file": ".claude/commands/create-feature.md",
+      "name": "lazy:plan",
+      "file": ".claude/commands/plan.md",
       "description": "Create user story and tasks from feature brief"
     },
     {
-      "name": "task-exec",
-      "file": ".claude/commands/task-exec.md",
+      "name": "lazy:code",
+      "file": ".claude/commands/code.md",
       "description": "Execute task with quality pipeline"
     },
     {
-      "name": "issue-implementation",
-      "file": ".claude/commands/task-exec.md",
+      "name": "lazy:issue-implementation",
+      "file": ".claude/commands/code.md",
       "description": "Execute task with quality pipeline (alias for GitHub issues)"
     },
     {
-      "name": "us-development",
-      "file": ".claude/commands/task-exec.md",
+      "name": "lazy:us-development",
+      "file": ".claude/commands/code.md",
       "description": "Execute task with quality pipeline (alias for user stories)"
     },
     {
-      "name": "story-review",
-      "file": ".claude/commands/story-review.md",
+      "name": "lazy:review",
+      "file": ".claude/commands/review.md",
       "description": "Review story and create PR with all committed tasks"
     },
     {
-      "name": "story-fix-review",
-      "file": ".claude/commands/story-fix-review.md",
+      "name": "lazy:fix",
+      "file": ".claude/commands/fix.md",
       "description": "Fix issues from story review report"
     },
     {
-      "name": "documentation",
-      "file": ".claude/commands/documentation.md",
+      "name": "lazy:docs",
+      "file": ".claude/commands/docs.md",
       "description": "Generate documentation for codebase, branch, commit, or file"
     },
     {
-      "name": "cleanup",
-      "file": ".claude/commands/cleanup.md",
+      "name": "lazy:clean",
+      "file": ".claude/commands/clean.md",
       "description": "Remove dead code safely from codebase"
     },
     {
-      "name": "memory-graph",
+      "name": "lazy:memory-graph",
       "file": ".claude/commands/memory-graph.md",
       "description": "Manage persistent knowledge via MCP Memory Graph"
     },
     {
-      "name": "memory-check",
+      "name": "lazy:memory-check",
       "file": ".claude/commands/memory-check.md",
       "description": "Verify Memory MCP connectivity and stats"
     }

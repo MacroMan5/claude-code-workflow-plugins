@@ -6,7 +6,9 @@
                 "-y",
                 "@modelcontextprotocol/server-memory"
             ],
-            "env": {}
+            "env": {
+                "MEMORY_FILE_PATH": ".claude/memory/memory.jsonl"
+            }
         }
     }
 }

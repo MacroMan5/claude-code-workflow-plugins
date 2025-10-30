@@ -131,12 +131,12 @@ uv pip install black ruff mypy pytest pytest-cov
 /help
 
 # You should see:
-# /lazy create-feature
-# /lazy task-exec
-# /lazy story-review
-# /lazy story-fix-review
-# /lazy documentation
-# /lazy cleanup
+# /lazy plan
+# /lazy code
+# /lazy review
+# /lazy fix
+# /lazy docs
+# /lazy clean
 # /lazy memory-graph
 # /lazy memory-check
 ```
@@ -154,12 +154,12 @@ uv pip install black ruff mypy pytest pytest-cov
 
 ```bash
 # Create your first feature
-/lazy create-feature "Add user authentication with OAuth2"
+/lazy plan "Add user authentication with OAuth2"
 
 # This should:
 # 1. Invoke the project-manager agent
 # 2. Create USER-STORY.md
-# 3. Create TASKS.md with atomic tasks
+# 3. Create tasks with atomic breakdown
 ```
 
 ---
@@ -250,9 +250,9 @@ After installation:
 
 2. **Try the quick start**:
    ```bash
-   /lazy create-feature "Your first feature"
-   /lazy task-exec TASK-1.1
-   /lazy story-review USER-STORY
+   /lazy plan "Your first feature"
+   /lazy code TASK-1.1
+   /lazy review USER-STORY
    ```
 
 3. **Customize for your project**:

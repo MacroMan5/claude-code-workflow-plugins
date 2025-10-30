@@ -1,11 +1,11 @@
 # LAZY_DEV Framework
 
-**Version**: 2.0.0 | **License**: MIT | **Status**: Production-Ready
+**Version**: 2.2.0 | **License**: MIT | **Status**: Production-Ready
 
 [![CI](https://github.com/MacroMan5/claude-code-workflow-plugins/workflows/CI/badge.svg)](https://github.com/MacroMan5/claude-code-workflow-plugins/actions)
 [![CodeQL](https://github.com/MacroMan5/claude-code-workflow-plugins/workflows/CodeQL%20Security%20Analysis/badge.svg)](https://github.com/MacroMan5/claude-code-workflow-plugins/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/MacroMan5/claude-code-workflow-plugins/releases)
+[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/MacroMan5/claude-code-workflow-plugins/releases)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet.svg)](https://docs.claude.com/en/docs/claude-code)
@@ -23,14 +23,14 @@ cp -r LAZY_DEV/.claude/ .claude/
 # 2. Set required environment variable
 export ENRICHMENT_MODEL=claude-3-5-haiku
 
-# 3. Create your first feature
-/lazy create-feature "Add user authentication"
+# 3. Plan your first feature
+/lazy plan "Add user authentication"
 
 # 4. Execute first task
-/lazy task-exec TASK-1.1
+/lazy code TASK-1
 
 # 5. Review and create PR
-/lazy story-review US-3.4
+/lazy review US-3.4
 ```
 
 **What just happened?** PM agent created user stories, Coder agent implemented with TDD, quality pipeline validated code, PR was auto-created.
@@ -52,7 +52,7 @@ Modern AI-assisted development suffers from:
 
 LAZY_DEV provides a turnkey framework with:
 - **Automatic quality pipeline**: format → lint → type → test (fail-fast)
-- **Persistent knowledge**: MCP Memory graph across sessions
+- **Persistent knowledge**: MCP Memory graph across sessions (project-isolated)
 - **End-to-end automation**: voice → feature → tasks → code → PR
 - **Protective hooks**: prevent dangerous operations (rm -rf, force-push to main)
 - **Specialized agents**: intelligent delegation based on context
@@ -67,13 +67,13 @@ Automate the mundane (formatting, commits, PRs) while enforcing discipline (qual
 
 ## Core Features
 
-**10 Commands**
-- `/lazy create-feature <brief>` - Generate US-story + tasks
-- `/lazy task-exec <id>` - Execute task with TDD
-- `/lazy story-review <id>` - Review feature, create PR
-- `/lazy story-fix-review <report>` - Apply review fixes
-- `/lazy documentation <file>` - Generate/update docs
-- `/lazy cleanup <path>` - Remove dead code
+**8 Commands**
+- `/lazy plan <brief>` - Generate US-story + tasks
+- `/lazy code <input>` - Implement from story/task/brief/issue
+- `/lazy review <id>` - Review feature, create PR or generate debug report
+- `/lazy fix <report>` - Apply review fixes from debug report
+- `/lazy docs <file>` - Generate/update docs
+- `/lazy clean <path>` - Remove dead code
 - `/lazy memory-graph <statement>` - Persist to MCP
 - `/lazy memory-check` - Verify MCP connectivity
 
@@ -155,6 +155,8 @@ cp LAZY_DEV/.claude/.mcp.json .mcp.json
 npx -y @modelcontextprotocol/server-memory
 ```
 
+The framework automatically creates `.claude/memory/` directory for project-specific memory storage.
+
 ### Step 4: Authenticate GitHub
 
 ```bash
@@ -180,27 +182,65 @@ gh repo set-default
 ### Complete Workflow Example
 
 ```bash
-# 1. Create Feature
-/lazy create-feature "Add payment processing with Stripe"
+# 1. Plan Feature
+/lazy plan "Add payment processing with Stripe"
 # → Creates single US-story.md file with inline tasks
 
 # 2. Execute Tasks (iteratively)
-/lazy task-exec TASK-1 --story US-3.4
-# → Implementation → Quality checks (flexible) → Review (if complex) → Commit
+/lazy code TASK-1
+# → Auto-finds story → Implementation → Quality checks → Review (if complex) → Commit
 
-/lazy task-exec TASK-2 --story US-3.4
+/lazy code TASK-2
 # → Repeat for each task
 
+# Or work from story file directly
+/lazy code @US-3.4.md
+# → Implements next pending task
+
 # 3. Review Complete Story
-/lazy story-review USER-STORY.md
-# → Reviews all tasks together → Creates PR
+/lazy review USER-STORY.md
+# → Reviews all tasks together → Creates PR or generates debug report
 
 # 4. Apply Fixes (if needed)
-/lazy story-fix-review review-report.md
+/lazy fix review-report.md
 # → Fixes issues and re-reviews
 ```
 
 **See [WORKFLOW.md](./WORKFLOW.md) for detailed workflow documentation.**
+
+### Review and Debug Reports
+
+The `/lazy review` command now generates structured debug reports when issues are found:
+
+```bash
+# Review story
+/lazy review US-3.4
+# If CHANGES_REQUIRED:
+#   Generated: US-3.4-review-report.md
+
+# Read the debug report
+cat US-3.4-review-report.md
+# Shows:
+# - Summary of issues
+# - Per-issue details with severity (CRITICAL/WARNING/SUGGESTION)
+# - Per-task status (committed)
+# - Actionable next steps
+
+# Apply fixes
+/lazy fix US-3.4-review-report.md
+# Routes to appropriate agents by severity
+
+# Re-review
+/lazy review US-3.4
+# Should show APPROVED and create PR
+```
+
+**Debug Report Contains:**
+- Summary of issues by severity
+- Per-task completion status
+- Specific code locations for fixes
+- Machine-readable format for `/lazy fix`
+- Estimated time for fixes
 
 ### Quality Pipeline
 
@@ -239,6 +279,12 @@ Semi-automatic persistence of durable facts (AI-assisted):
 
 **How it works**: Hooks detect durable facts (service owners, endpoints, repo links) and suggest MCP Memory storage. Claude Code decides when to invoke MCP tools based on context.
 
+**Project-Specific Memory:**
+- Memory stored in `<PROJECT_ROOT>/.claude/memory/memory.jsonl`
+- Each project has isolated knowledge graph
+- Memory persists across sessions within same project
+- No global pollution across repositories
+
 **See [MEMORY.md](./MEMORY.md) for complete memory system documentation.**
 
 ---
@@ -255,7 +301,8 @@ LAZY_DEV/
 │   ├── hooks/           # 4 hooks (Python)
 │   ├── skills/          # 17 skills
 │   ├── status_lines/    # Status bar
-│   ├── .mcp.json        # MCP config
+│   ├── memory/          # Project-specific memory storage
+│   ├── .mcp.json        # MCP config (with MEMORY_FILE_PATH env var)
 │   └── settings.json    # Claude settings
 ├── scripts/             # Quality scripts (format, lint, test)
 ├── STT_PROMPT_ENHANCER/ # Voice-to-prompt pipeline
@@ -269,7 +316,7 @@ YAML frontmatter + Markdown system prompt:
 ```yaml
 ---
 name: coder
-description: Implements features following TDD. Use after task-exec command.
+description: Implements features following TDD. Use after code command.
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 ---
@@ -317,8 +364,15 @@ Voice/Text Input → Feature Creation → Task Execution → Story Review → PR
 - GitHub issue sync
 - Voice input support
 
+**Debug Reports on Review Failure**
+- Structured, machine-readable format
+- Clear per-task status
+- Actionable next steps
+- Automatic routing to `/lazy fix`
+
 **Memory Persistence**
 - MCP Memory graph for durable facts
+- Project-isolated (no global pollution)
 - Persists across sessions
 - Auto-triggers on durable knowledge
 

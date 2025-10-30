@@ -477,210 +477,76 @@ elif [ "$agent_status" = "REQUEST_CHANGES" ]; then
     echo ""
 
     # Generate detailed review report
-    report_file="${story_dir}/${story_id}-REVIEW-REPORT.md"
+    report_file="${story_dir}/${story_id}-review-report.md"
 
     echo "📝 Generating review report: ${report_file}"
 
     # Extract data from agent JSON output
     agent_summary=$(echo "$agent_output" | jq -r '.summary' 2>/dev/null || echo "Review found issues")
-    tasks_reviewed=$(echo "$agent_output" | jq -r '.tasks_reviewed | join(", ")' 2>/dev/null || echo "N/A")
 
     # Count issues by severity
     critical_count=$(echo "$agent_output" | jq '[.issues[] | select(.severity == "CRITICAL")] | length' 2>/dev/null || echo "0")
     warning_count=$(echo "$agent_output" | jq '[.issues[] | select(.severity == "WARNING")] | length' 2>/dev/null || echo "0")
     suggestion_count=$(echo "$agent_output" | jq '[.issues[] | select(.severity == "SUGGESTION")] | length' 2>/dev/null || echo "0")
+    total_issues=$((critical_count + warning_count + suggestion_count))
 
-    # Parse acceptance criteria status from story file
-    acceptance_criteria_section=$(cat "$story_file" | sed -n '/## Acceptance Criteria/,/##/p' | head -n -1)
+    # Get task status summary
+    tasks_passed=$(echo "$agent_output" | jq '[.tasks_status[] | select(.status == "passed")] | length' 2>/dev/null || echo "0")
+    tasks_total=$(echo "$agent_output" | jq '.tasks_status | length' 2>/dev/null || echo "0")
 
     # Generate comprehensive report
     cat > "$report_file" <<REPORT_EOF
 # Story Review Report: ${story_id}
 
-**Generated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-**Story:** ${story_title}
-**Status:** ❌ CHANGES REQUIRED
-**Reviewer:** reviewer-story agent (LAZY-DEV-FRAMEWORK)
-**Branch:** $(git branch --show-current)
+**Status**: ❌ FAILED
+**Reviewed**: $(date +"%Y-%m-%d %H:%M")
+**Tasks**: ${tasks_passed}/${tasks_total} passed
 
----
-
-## Executive Summary
+## Summary
+${total_issues} issues found preventing PR creation.
 
 ${agent_summary}
-
-**Tasks Reviewed:** ${tasks_reviewed}
-**Issues Found:** ${critical_count} Critical, ${warning_count} Warnings, ${suggestion_count} Suggestions
-
----
-
-## Acceptance Criteria Status
-
-${acceptance_criteria_section}
-
----
 
 ## Issues Found
 
 $(echo "$agent_output" | jq -r '
 if .issues and (.issues | length > 0) then
-    # Critical Issues
-    (if [.issues[] | select(.severity == "CRITICAL")] | length > 0 then
-        "### 🔴 CRITICAL (Must Fix Before Approval)\n\n" +
-        ([.issues[] | select(.severity == "CRITICAL")] | to_entries | map(
-            "#### Issue " + ((.key + 1) | tostring) + ": " + .value.description + "\n" +
-            "- **Type**: " + (.value.type // "Code Quality") + "\n" +
-            "- **Severity**: CRITICAL\n" +
-            "- **Task**: " + (.value.task_id // "N/A") + "\n" +
-            "- **Location**: \`" + (.value.file // "N/A") + (if .value.line then ":" + (.value.line | tostring) else "" end) + "\`\n" +
-            "- **Description**: " + .value.description + "\n" +
-            "- **Impact**: " + (.value.impact // "Must be fixed before approval") + "\n" +
-            "- **Required Fix**: " + .value.fix + "\n" +
-            "- **Agent to use**: " + (.value.suggested_agent // "`/lazy task-exec " + (.value.task_id // "TASK-ID") + "`") + "\n"
-        ) | join("\n"))
-    else "" end) +
-
-    # Warning Issues
-    (if [.issues[] | select(.severity == "WARNING")] | length > 0 then
-        "\n### ⚠️ WARNING (Should Fix)\n\n" +
-        ([.issues[] | select(.severity == "WARNING")] | to_entries | map(
-            "#### Issue " + ((.key + 1) | tostring) + ": " + .value.description + "\n" +
-            "- **Type**: " + (.value.type // "Code Quality") + "\n" +
-            "- **Severity**: WARNING\n" +
-            "- **Task**: " + (.value.task_id // "N/A") + "\n" +
-            "- **Location**: \`" + (.value.file // "N/A") + (if .value.line then ":" + (.value.line | tostring) else "" end) + "\`\n" +
-            "- **Description**: " + .value.description + "\n" +
-            "- **Required Fix**: " + .value.fix + "\n"
-        ) | join("\n"))
-    else "" end) +
-
-    # Suggestions
-    (if [.issues[] | select(.severity == "SUGGESTION")] | length > 0 then
-        "\n### 💡 SUGGESTION (Optional Improvements)\n\n" +
-        ([.issues[] | select(.severity == "SUGGESTION")] | to_entries | map(
-            "#### Suggestion " + ((.key + 1) | tostring) + ": " + .value.description + "\n" +
-            "- **Task**: " + (.value.task_id // "N/A") + "\n" +
-            "- **Location**: \`" + (.value.file // "N/A") + (if .value.line then ":" + (.value.line | tostring) else "" end) + "\`\n" +
-            "- **Description**: " + .value.description + "\n" +
-            "- **Improvement**: " + .value.fix + "\n"
-        ) | join("\n"))
-    else "" end)
+    .issues | to_entries | map(
+        "### " + ((.key + 1) | tostring) + ". " +
+        (if .value.type then (.value.type | gsub("_"; " ") | ascii_upcase) else "Issue" end) +
+        " (" + (.value.file // "N/A") +
+        (if .value.line then ":" + (.value.line | tostring) else "" end) + ")\n" +
+        "- **Type**: " + (.value.type // "unknown") + "\n" +
+        "- **File**: " + (.value.file // "N/A") +
+        (if .value.line then ":" + (.value.line | tostring) else "" end) + "\n" +
+        "- **Issue**: " + .value.description + "\n" +
+        "- **Fix**: " + .value.fix + "\n"
+    ) | join("\n")
 else
-    "No specific issues documented by reviewer."
+    "No specific issues documented."
 end
 ')
 
----
-
-## Compliance Issues
-
-### Project Standards Violations:
+## Tasks Status
 $(echo "$agent_output" | jq -r '
-if .issues then
-    [.issues[] | select(.type == "Standards" or .type == "Compliance")] |
-    if length > 0 then
-        map("- [ ] " + .description + " in \`" + (.file // "N/A") + "\`") | join("\n")
-    else
-        "- [x] No project standards violations found"
-    end
+if .tasks_status and (.tasks_status | length > 0) then
+    .tasks_status | map(
+        "- " + .task_id + ": " +
+        (if .status == "passed" then "✅ Passed"
+         elif .status == "failed" then "❌ Failed (" + (.issues_count | tostring) + " issues)"
+         elif .status == "warning" then "⚠️ Warning (" + (.issues_count | tostring) + " issues)"
+         else "⚠️ " + .status
+         end)
+    ) | join("\n")
 else
-    "- [x] No project standards violations found"
+    "- No task status available"
 end
 ')
-
-### Enterprise Guideline Violations:
-$(echo "$agent_output" | jq -r '
-if .issues then
-    [.issues[] | select(.type == "Security" or .type == "Enterprise")] |
-    if length > 0 then
-        map("- [ ] " + .severity + ": " + .description) | join("\n")
-    else
-        "- [x] No enterprise guideline violations found"
-    end
-else
-    "- [x] No enterprise guideline violations found"
-end
-')
-
----
-
-## Test Coverage Issues
-
-$(echo "$agent_output" | jq -r '
-if .issues then
-    [.issues[] | select(.type == "Testing" or .type == "Coverage")] |
-    if length > 0 then
-        "**Current Coverage**: $(echo "$coverage_result" | grep "^TOTAL" | awk "{print \$NF}" || echo "N/A")\n" +
-        "**Required**: >80%\n\n" +
-        "**Files needing tests:**\n" +
-        (map("- \`" + (.file // "N/A") + "\`: " + .description) | join("\n"))
-    else
-        "**Status**: ✅ Test coverage meets requirements\n" +
-        "**Coverage**: $(echo "$coverage_result" | grep "^TOTAL" | awk "{print \$NF}" || echo "N/A")"
-    end
-else
-    "**Status**: ✅ No test coverage issues reported"
-end
-')
-
----
-
-## Required Actions
-
-### To Fix and Re-Submit:
-
-1. **Fix Critical Issues** (Priority 1):
-   \`\`\`bash
-   # Use story-fix-review command to route fixes to appropriate agents
-   /lazy story-fix-review ${report_file}
-   \`\`\`
-
-   This will automatically:
-   - Parse the report for critical issues
-   - Route security issues → coder agent
-   - Route test gaps → tester agent
-   - Route architecture issues → refactor agent
-   - Route documentation → documentation agent
-
-2. **Address Warning Issues** (Priority 2):
-   Review each warning and apply fixes manually or use specific agents:
-   - Code quality: \`/lazy task-exec TASK-X.Y\` (re-execute task)
-   - Documentation: \`/lazy documentation --scope ${story_id}\`
-   - Refactoring: \`/lazy refactor --scope ${story_id}\`
-
-3. **Re-run Story Review**:
-   \`\`\`bash
-   /lazy story-review ${story_id}
-   \`\`\`
-
-4. **Verify All Criteria Met**:
-   - All ✓ marks in acceptance criteria
-   - All 🔴 CRITICAL issues resolved
-   - Coverage >80%
-   - All tests passing
-
----
-
-## Estimated Fix Time
-
-- Critical issues: $(echo "$critical_count * 2" | bc 2>/dev/null || echo "$critical_count") hours (estimated)
-- Warning issues: $(echo "$warning_count * 1" | bc 2>/dev/null || echo "$warning_count") hours (estimated)
-- Total estimated: $(echo "($critical_count * 2) + $warning_count" | bc 2>/dev/null || echo "N/A") hours
-
----
 
 ## Next Steps
+Run: \`/lazy fix ${report_file}\`
 
-1. ✅ Review this report: \`cat ${report_file}\`
-2. ✅ Fix critical issues: \`/lazy story-fix-review ${report_file}\`
-3. ✅ Re-run review: \`/lazy story-review ${story_id}\`
-4. ✅ Create PR once approved
-
----
-
-**Generated by**: Claude Code LAZY-DEV-FRAMEWORK
-**Review Agent**: \`.claude/agents/reviewer-story.md\`
-**Framework Version**: 1.0.0-alpha
+Or manually fix and re-run: \`/lazy review @${story_file}\`
 REPORT_EOF
 
     echo "✅ Review report generated: ${report_file}"
@@ -692,8 +558,8 @@ REPORT_EOF
     echo ""
     echo "Next steps:"
     echo "  1. Review report: cat ${report_file}"
-    echo "  2. Fix issues: /lazy story-fix-review ${report_file}"
-    echo "  3. Re-run review: /lazy story-review ${story_id}"
+    echo "  2. Fix issues: /lazy fix ${report_file}"
+    echo "  3. Re-run review: /lazy review ${story_id}"
     echo ""
 
     # Exit with status 1 to indicate failure

@@ -127,57 +127,66 @@ Return JSON:
   "issues": [
     {
       "severity": "CRITICAL" | "WARNING" | "SUGGESTION",
+      "type": "lint_error" | "test_failure" | "security" | "coverage" | "standards",
+      "task_id": "TASK-X.Y",
       "file": "path/to/file.py",
       "line": 42,
       "description": "What's wrong",
-      "fix": "How to fix it"
+      "fix": "How to fix it",
+      "impact": "Why this matters"
+    }
+  ],
+  "tasks_status": [
+    {
+      "task_id": "TASK-X.Y",
+      "status": "passed" | "failed" | "warning",
+      "issues_count": 0
     }
   ],
   "summary": "Overall assessment: completeness, quality, integration, tests, docs, security, recommendation",
-  "report_path": "US-X.X_REPORT.md"
+  "report_path": "US-X.X-review-report.md"
 }
 ```
 
 ## Detailed Report (if REQUEST_CHANGES)
 
-Create `US-{story_id}_REPORT.md`:
+Create `US-{story_id}-review-report.md`:
 
 ```markdown
-# Code Review Report: US-{story_id}
+# Story Review Report: US-{story_id}
 
-**Status**: REQUEST_CHANGES
-**Date**: {date}
-**Branch**: {branch_name}
+**Status**: ❌ FAILED
+**Reviewed**: {YYYY-MM-DD HH:MM}
+**Tasks**: {passed_count}/{total_count} passed
 
-## Executive Summary
-{High-level findings}
+## Summary
+{issue_count} issues found preventing PR creation.
 
-## Story Completeness
-- [x] Criterion 1: Met
-- [ ] Criterion 2: NOT MET - {reason}
+## Issues Found
 
-## Critical Issues (MUST FIX)
+### 1. {Issue Type} ({file}:{line})
+- **Type**: {lint_error|test_failure|security|coverage|standards}
+- **File**: {src/auth.py:45}
+- **Issue**: {description}
+- **Fix**: {how to fix}
 
-### Issue 1: {Title}
-- **File**: `path/to/file.py:42`
-- **Description**: {What's wrong}
-- **Impact**: {Why critical}
-- **Fix**: {How to resolve}
+### 2. {Issue Type} ({file})
+- **Type**: {type}
+- **File**: {file}
+- **Issue**: {description}
+- **Fix**: {how to fix}
 
-## Warnings (SHOULD FIX)
-{List warnings}
+## Tasks Status
+- TASK-001: ✅ Passed
+- TASK-002: ❌ Failed (2 lint errors)
+- TASK-003: ⚠️ No tests
+- TASK-004: ✅ Passed
+- TASK-005: ❌ Failed (test failure)
 
-## Suggestions (CONSIDER)
-{List suggestions}
+## Next Steps
+Run: `/lazy fix US-{story_id}-review-report.md`
 
-## Integration Analysis
-{How tasks work together}
-
-## Test Results
-{Pytest results if TDD required}
-
-## Recommendations
-{Steps to address issues}
+Or manually fix and re-run: `/lazy review @US-{story_id}.md`
 ```
 
 ## Best Practices

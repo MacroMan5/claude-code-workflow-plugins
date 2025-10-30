@@ -88,14 +88,19 @@ if [[ "$story_input" =~ ^US-[0-9]+\.[0-9]+$ ]]; then
         exit 1
     fi
 
-    # Look for report file in story directory
-    report_file="${story_dir}/US-${story_input}_REPORT.md"
+    # Look for report file in story directory (try new format first, fall back to old)
+    report_file="${story_dir}/${story_input}-review-report.md"
 
     if [[ ! -f "$report_file" ]]; then
-        echo "❌ Error: Report not found at $report_file"
-        echo ""
-        echo "💡 Run: /lazy story-review $story_input"
-        exit 1
+        # Try old format
+        report_file="${story_dir}/${story_input}_REPORT.md"
+
+        if [[ ! -f "$report_file" ]]; then
+            echo "❌ Error: Report not found at $report_file"
+            echo ""
+            echo "💡 Run: /lazy review $story_input"
+            exit 1
+        fi
     fi
 
     story_file="${story_dir}/US-story.md"
@@ -700,10 +705,10 @@ Status: Clean working tree ✅
 /lazy story-fix-review US-3.4 develop
 
 # With full path to report (backward compatible)
-/lazy story-fix-review ./project-management/US-STORY/US-3.4-oauth2-authentication/US-3.4_REPORT.md
+/lazy fix ./project-management/US-STORY/US-3.4-oauth2-authentication/US-3.4-review-report.md
 
 # Verify issues before running
-cat ./project-management/US-STORY/US-3.4-oauth2-authentication/US-3.4_REPORT.md
+cat ./project-management/US-STORY/US-3.4-oauth2-authentication/US-3.4-review-report.md
 
 # List available stories
 ls -1 ./project-management/US-STORY/
@@ -732,13 +737,13 @@ gh issue view 45
 ✅ Story resolved:
    ID: US-3.4
    Directory: ./project-management/US-STORY/US-3.4-oauth2-authentication
-   Report: US-3.4_REPORT.md
+   Report: US-3.4-review-report.md
 
 ✅ Fixed 5 issues from report
 
 📁 Story: US-3.4-oauth2-authentication
    Directory: ./project-management/US-STORY/US-3.4-oauth2-authentication/
-   Report: US-3.4_REPORT.md
+   Report: US-3.4-review-report.md
    Tasks: 3 tasks in TASKS/
 
 🔧 Fixes Applied:
@@ -879,7 +884,7 @@ All activities logged to `logs/<session-id>/story-fix-review.json`:
 ./project-management/US-STORY/
 └── US-3.4-oauth2-authentication/
     ├── US-story.md                    # User story specification
-    ├── US-3.4_REPORT.md               # Review report (if issues found)
+    ├── US-3.4-review-report.md        # Review report (if issues found)
     └── TASKS/
         ├── TASK-1.1.md                # Task with GitHub issue link
         ├── TASK-1.2.md
@@ -888,42 +893,43 @@ All activities logged to `logs/<session-id>/story-fix-review.json`:
 
 **Report Structure Expected:**
 
-The US-X.X_REPORT.md in story directory should contain:
+The US-X.Y-review-report.md in story directory should contain:
 
 ```markdown
 # Story Review Report: US-3.4
 
-**Generated**: 2025-10-26T10:00:00Z
-**Status**: CHANGES_NEEDED
+**Status**: ❌ FAILED
+**Reviewed**: 2025-10-30 10:45
+**Tasks**: 3/5 passed
 
 ## Summary
-Issues Found: 5 (2 CRITICAL, 2 WARNING, 1 SUGGESTION)
+3 issues found preventing PR creation.
 
-## CRITICAL Issues
+## Issues Found
 
-### Issue #1: [Title]
-**Severity:** 🔴 CRITICAL
-**Category:** Security
-**Affected Files:** src/auth/oauth2.py:45-52
-**Task:** TASK-1.2
-**GitHub Issue:** #44
-**Problem:** SQL injection vulnerability in user query
-**Impact:** Attacker could extract sensitive data
-**Proposed Solution:** Use parameterized queries with SQLAlchemy
+### 1. Lint Error (src/auth.py:45)
+- **Type**: lint_error
+- **File**: src/auth.py:45
+- **Issue**: unused import 'os'
+- **Fix**: Remove import or use it
 
-### Issue #2: [Title]
-**Severity:** 🔴 CRITICAL
-**Category:** Test Gap
-**Affected Files:** tests/auth/test_oauth2.py
-**Task:** TASK-1.3
-**GitHub Issue:** #45
-**Problem:** Missing test for expired token edge case
-**Impact:** Runtime failures not caught in CI
-**Proposed Solution:** Add test case for token expiration scenarios
+### 2. Test Failure (tests/test_auth.py)
+- **Type**: test_failure
+- **File**: tests/test_auth.py
+- **Issue**: test_login_success failed
+- **Fix**: Check mock credentials
+
+## Tasks Status
+- TASK-001: ✅ Passed
+- TASK-002: ❌ Failed (2 lint errors)
+- TASK-003: ⚠️ No tests
+- TASK-004: ✅ Passed
+- TASK-005: ❌ Failed (test failure)
 
 ## Next Steps
+Run: `/lazy fix US-3.4-review-report.md`
 
-Run: /lazy story-fix-review US-3.4
+Or manually fix and re-run: `/lazy review @US-3.4.md`
 ```
 
 **Task File Structure Expected:**

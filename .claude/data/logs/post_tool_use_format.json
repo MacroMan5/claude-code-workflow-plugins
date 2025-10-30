@@ -1,0 +1,398 @@
+[
+  {
+    "timestamp": "2025-10-30T09:55:00.786333",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\.claude\\settings.json",
+      "type": "unsupported",
+      "message": "No formatter for .json files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T09:55:07.420003",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\.claude-plugin\\plugin.json",
+      "type": "unsupported",
+      "message": "No formatter for .json files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T09:57:46.332886",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\CLAUDE.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T09:59:07.557623",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\README.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:07:05.413428",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\INSTALL.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:07:06.411262",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\docs\\plugins\\INSTALLATION.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:08:01.907133",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\docs\\plugins\\WORKFLOW.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:10:41.571779",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\.claude\\commands\\code.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:11:15.686747",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\README.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:11:16.396275",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\README.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:11:17.082683",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\README.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:11:27.362883",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\CLAUDE.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:11:47.309510",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\docs\\plugins\\WORKFLOW.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:13:29.563307",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\.claude\\.mcp.json",
+      "type": "unsupported",
+      "message": "No formatter for .json files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:13:47.059177",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\.gitignore",
+      "type": "unsupported",
+      "message": "No formatter for  files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:13:58.374722",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\.claude\\README.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:14:28.690964",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\.claude\\TESTING.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:14:48.306491",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\.claude\\mcp.json.template",
+      "type": "unsupported",
+      "message": "No formatter for .template files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:17:56.631604",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\CLAUDE.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:17:58.824529",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\README.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:18:02.054836",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\docs\\plugins\\MEMORY.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:22:12.707580",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\CLAUDE.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:23:55.052946",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\.claude\\agents\\reviewer-story.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:24:10.636817",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\.claude\\agents\\reviewer-story.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:24:28.204365",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\.claude\\commands\\review.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:25:06.940490",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\.claude\\commands\\review.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:25:15.407304",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\.claude\\commands\\review.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:25:28.093547",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\.claude\\commands\\fix.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:25:40.028741",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\.claude\\commands\\fix.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:25:46.956726",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\.claude\\commands\\fix.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:26:08.324483",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\.claude\\commands\\fix.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:30:39.892930",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\CLAUDE.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:30:43.525889",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\README.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:30:47.910470",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:\\DEV\\LAZY_DEV\\claude-code-workflow-plugins\\LAZY_DEV\\docs\\plugins\\WORKFLOW.md",
+      "type": "unsupported",
+      "message": "No formatter for .md files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:35:25.249489",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Write",
+    "format_result": {
+      "formatted": false,
+      "file": "C:/DEV/LAZY_DEV/claude-code-workflow-plugins/LAZY_DEV/.claude/.mcp.json",
+      "type": "unsupported",
+      "message": "No formatter for .json files"
+    }
+  },
+  {
+    "timestamp": "2025-10-30T10:46:57.823191",
+    "session_id": "1541d42c-a39c-455a-aa37-904efae0ff02",
+    "tool_name": "Edit",
+    "format_result": {
+      "formatted": false,
+      "file": "C:/DEV/LAZY_DEV/claude-code-workflow-plugins/.claude-plugin/marketplace.json",
+      "type": "unsupported",
+      "message": "No formatter for .json files"
+    }
+  }
+]
