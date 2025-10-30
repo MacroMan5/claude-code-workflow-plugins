@@ -1,7 +1,5 @@
 # LAZY_DEV Framework
 
-> Command-first AI framework for Claude Code with automated workflows, quality enforcement, and persistent knowledge management.
-
 **Version**: 2.0.0 | **License**: MIT | **Status**: Production-Ready
 
 [![CI](https://github.com/MacroMan5/claude-code-workflow-plugins/workflows/CI/badge.svg)](https://github.com/MacroMan5/claude-code-workflow-plugins/actions)
