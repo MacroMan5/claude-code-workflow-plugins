@@ -77,9 +77,9 @@ Automate the mundane (formatting, commits, PRs) while enforcing discipline (qual
 - `/lazy memory-graph <statement>` - Persist to MCP
 - `/lazy memory-check` - Verify MCP connectivity
 
-**10 Specialized Agents** (automatic delegation)
+**9 Specialized Agents** (automatic delegation)
 - project-manager, coder, reviewer, reviewer-story, tester
-- research, documentation, refactor, cleanup, task-enhancer
+- research, documentation, refactor, cleanup
 
 **17 Skills** (reusable patterns)
 - Planning: story-traceability, task-slicer, ac-expander
@@ -182,13 +182,13 @@ gh repo set-default
 ```bash
 # 1. Create Feature
 /lazy create-feature "Add payment processing with Stripe"
-# → Creates USER-STORY.md + TASK-*.md files
+# → Creates single US-story.md file with inline tasks
 
 # 2. Execute Tasks (iteratively)
-/lazy task-exec TASK-1.1
-# → TDD implementation → Quality pipeline → Review → Commit
+/lazy task-exec TASK-1 --story US-3.4
+# → Implementation → Quality checks (flexible) → Review (if complex) → Commit
 
-/lazy task-exec TASK-1.2
+/lazy task-exec TASK-2 --story US-3.4
 # → Repeat for each task
 
 # 3. Review Complete Story

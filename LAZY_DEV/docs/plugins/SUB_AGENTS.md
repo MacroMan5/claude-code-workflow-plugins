@@ -2,15 +2,15 @@
 
 Central registry of all sub-agents with their purposes, tools, and usage patterns.
 
-**Version**: 2.0.0
-**Last Updated**: 2025-10-29
+**Version**: 2.1.0
+**Last Updated**: 2025-10-30
 **Purpose**: Single source of truth for all sub-agent specifications
 
 ---
 
 ## Overview
 
-LAZY_DEV uses 10 specialized sub-agents that operate on conversation context. Each agent extracts what it needs from the conversation naturally, following Anthropic's best practices for agent design.
+LAZY_DEV uses 9 specialized sub-agents that operate on conversation context. Each agent extracts what it needs from the conversation naturally, following Anthropic's best practices for agent design.
 
 **How Agents Work**:
 - Agents are invoked via Claude Code's Task tool with `subagent_type="general-purpose"`
@@ -31,15 +31,14 @@ LAZY_DEV uses 10 specialized sub-agents that operate on conversation context. Ea
 ## Table of Contents
 
 1. [Project-Manager Agent](#1-project-manager-agent)
-2. [Task-Enhancer Agent](#2-task-enhancer-agent)
-3. [Coder Agent](#3-coder-agent)
-4. [Reviewer Agent](#4-reviewer-agent)
-5. [Reviewer-Story Agent](#5-reviewer-story-agent)
-6. [Tester Agent](#6-tester-agent)
-7. [Research Agent](#7-research-agent)
-8. [Documentation Agent](#8-documentation-agent)
-9. [Refactor Agent](#9-refactor-agent)
-10. [Cleanup Agent](#10-cleanup-agent)
+2. [Coder Agent](#2-coder-agent)
+3. [Reviewer Agent](#3-reviewer-agent)
+4. [Reviewer-Story Agent](#4-reviewer-story-agent)
+5. [Tester Agent](#5-tester-agent)
+6. [Research Agent](#6-research-agent)
+7. [Documentation Agent](#7-documentation-agent)
+8. [Refactor Agent](#8-refactor-agent)
+9. [Cleanup Agent](#9-cleanup-agent)
 
 ---
 
@@ -74,7 +73,7 @@ The agent prompt references the conversation context, and the agent extracts wha
 
 ## 1. Project-Manager Agent
 
-**Purpose**: Create comprehensive USER-STORY and individual TASK files from feature briefs.
+**Purpose**: Create US-story.md with inline tasks from feature briefs.
 
 **Location**: `.claude/agents/project-manager.md`
 
@@ -84,20 +83,19 @@ The agent prompt references the conversation context, and the agent extracts wha
 
 **When to Use**:
 - Start of new feature development
-- Breaking down complex features into tasks
-- Creating project structure and task files
+- Breaking down features into actionable tasks
+- Creating single story file with inline tasks
 
 **What It Does**:
 1. Analyzes feature brief from conversation
-2. Creates USER-STORY.md with:
-   - Story ID (format: `US-YYYYMMDD-XXX`)
+2. Creates single US-story.md file with:
+   - Story ID (format: `US-X.Y`)
    - Description and acceptance criteria
-   - Security considerations checklist
-   - Testing requirements (unit, integration, edge cases)
-   - Technical dependencies
-   - Architecture impact
+   - **Inline tasks** (TASK-1, TASK-2, etc. as sections)
+   - Security considerations (contextual)
+   - Testing requirements (optional based on project)
+   - Technical notes
    - Definition of done
-3. Creates multiple TASK-*.md files (one per task):
    - Task ID (format: `TASK-[StoryID]-[Number]`)
    - Description and acceptance criteria
    - Effort estimate (S/M/L)
@@ -124,56 +122,9 @@ The agent prompt references the conversation context, and the agent extracts wha
 
 ---
 
-## 2. Task-Enhancer Agent
+## 2. Coder Agent
 
-**Purpose**: Enhance task files with technical context by researching the codebase.
-
-**Location**: `.claude/agents/task-enhancer.md`
-
-**Model**: Sonnet (requires deep codebase analysis)
-
-**Tools**: Read, Write, Edit, Grep, Glob
-
-**When to Use**:
-- After project-manager creates initial tasks
-- Before starting implementation (to add context)
-- When tasks need codebase-specific guidance
-
-**What It Does**:
-1. Reads existing TASK files from conversation context
-2. Researches codebase for relevant patterns
-3. Enhances each TASK file with:
-   - Technical overview (how task fits into architecture)
-   - Relevant files to reference
-   - Files to create/modify (with line numbers)
-   - Code patterns from codebase (10-30 line snippets)
-   - Dependencies (existing + new)
-   - Architecture integration
-   - Testing strategy
-   - Security considerations
-   - Implementation tips (do's/don'ts, gotchas)
-
-**Success Criteria**:
-- Each task has actionable technical context
-- At least 3 relevant files identified per task
-- At least 2 code pattern examples with file paths
-- Specific files to create/modify with line numbers
-- Dependencies clearly listed (existing + new)
-- Architecture integration clear
-- Testing strategy aligned with project conventions
-
-**Notes**:
-- Runs AFTER project-manager creates initial tasks
-- Reads codebase extensively but only writes/edits task files
-- Provides concrete, actionable information (not vague suggestions)
-- Code examples should be 10-30 lines (copy-pasteable)
-- Handles edge cases: new projects, legacy codebases, microservices
-
----
-
-## 3. Coder Agent
-
-**Purpose**: Implement coding tasks with clean, tested, type-hinted code.
+**Purpose**: Implement coding tasks with clean, maintainable code.
 
 **Location**: `.claude/agents/coder.md`
 
@@ -184,26 +135,26 @@ The agent prompt references the conversation context, and the agent extracts wha
 **When to Use**:
 - Implementing individual tasks
 - Writing production code
-- Creating tests alongside implementation
+- Creating tests if TDD required in project
 
 **What It Does**:
-1. Reads task description and acceptance criteria from conversation
-2. Optionally reads research context if provided
-3. Implements code with:
-   - Type hints on all functions (Python 3.11+)
-   - Google-style docstrings (Args, Returns, Raises, Examples)
-   - Comprehensive error handling
+1. Reads task description from US-story.md
+2. Implements code with:
+   - Type hints if project uses them
+   - Docstrings for public APIs
+   - Proper error handling
    - Input validation
    - Security best practices
-4. Creates test files with:
-   - Unit tests for all functions
-   - Integration tests for workflows
-   - Edge case coverage (null, empty, boundary)
-   - Mocked external dependencies
-   - Minimum 80% coverage
+3. Creates tests **only if TDD required** in project:
+   - Checks for pytest/jest in repo
+   - Unit tests for core functionality
+   - Edge case coverage
+   - Follows existing test patterns
 
 **Success Criteria**:
 - All acceptance criteria met
+- Code follows project conventions
+- Tests pass (if TDD required)
 - Code is clean, readable, and well-structured
 - Type hints on all functions
 - Comprehensive docstrings (Google style)
@@ -221,7 +172,7 @@ The agent prompt references the conversation context, and the agent extracts wha
 
 ---
 
-## 4. Reviewer Agent
+## 3. Reviewer Agent
 
 **Purpose**: Review code implementation for quality, security, and testing.
 
@@ -288,7 +239,7 @@ The agent prompt references the conversation context, and the agent extracts wha
 
 ---
 
-## 5. Reviewer-Story Agent
+## 4. Reviewer-Story Agent
 
 **Purpose**: Review all tasks in a story together for cohesion and completeness before PR creation.
 
@@ -304,19 +255,18 @@ The agent prompt references the conversation context, and the agent extracts wha
 - To verify story-level integration
 
 **What It Does**:
-1. Reads story file, task files, and branch from conversation
+1. Reads US-story.md file (with inline tasks) and branch from conversation
 2. Reviews entire story for:
    - Story completeness (all acceptance criteria met)
-   - Code quality consistency across tasks
-   - Integration (tasks work together cohesively)
-   - Testing (all tests pass, adequate coverage)
+   - Code quality consistency
+   - Integration (all changes work together cohesively)
+   - Testing (runs tests if TDD required in project)
    - Documentation (APIs documented, README updated)
    - Security (input validation, vulnerability prevention)
 3. Returns JSON response with:
    - Status: APPROVED or REQUEST_CHANGES
-   - Issues list (per task)
+   - Issues list with severity levels
    - Summary of entire story
-   - Tasks reviewed
    - Report path (if REQUEST_CHANGES)
 4. If REQUEST_CHANGES, creates detailed US-{story_id}_REPORT.md
 
@@ -339,11 +289,11 @@ The agent prompt references the conversation context, and the agent extracts wha
 - Data flows correctly between components
 - Consistent patterns
 
-**Testing**:
+**Testing** (if TDD required in project):
 - All tests pass
 - Test coverage adequate
 - Edge cases covered
-- Integration tests for multi-task features
+- Integration tests exist
 
 **Documentation**:
 - Public APIs documented
@@ -381,7 +331,7 @@ The agent prompt references the conversation context, and the agent extracts wha
 
 ---
 
-## 6. Tester Agent
+## 5. Tester Agent
 
 **Purpose**: Generate comprehensive test suites with edge cases.
 
@@ -446,7 +396,7 @@ The agent prompt references the conversation context, and the agent extracts wha
 
 ---
 
-## 7. Research Agent
+## 6. Research Agent
 
 **Purpose**: Research documentation and best practices for technologies.
 
@@ -506,7 +456,7 @@ The agent prompt references the conversation context, and the agent extracts wha
 
 ---
 
-## 8. Documentation Agent
+## 7. Documentation Agent
 
 **Purpose**: Generate or update documentation, docstrings, and README files.
 
@@ -578,7 +528,7 @@ The agent prompt references the conversation context, and the agent extracts wha
 
 ---
 
-## 9. Refactor Agent
+## 8. Refactor Agent
 
 **Purpose**: Simplify code while preserving functionality.
 
@@ -657,7 +607,7 @@ The agent prompt references the conversation context, and the agent extracts wha
 
 ---
 
-## 10. Cleanup Agent
+## 9. Cleanup Agent
 
 **Purpose**: Remove dead code, unused imports, and temporary files.
 

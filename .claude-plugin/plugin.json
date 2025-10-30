@@ -1,7 +1,7 @@
 {
   "name": "lazy-dev",
-  "version": "2.0.0",
-  "description": "Command-first AI framework for Claude Code with automated workflows, quality enforcement, and persistent knowledge management",
+  "version": "2.1.0",
+  "description": "Pragmatic, flexible AI framework for Claude Code with optional TDD, smart reviews, and inline task management",
   "author": {
     "name": "MacroMan5 (Therouxe)",
     "email": "etheroux5@gmail.com"
