@@ -94,4 +94,4 @@ jobs:
           echo ""
           echo "Users can now install with:"
           echo "/plugin marketplace add MacroMan5/claude-code-workflow-plugins"
-          echo "/plugin install lazy-dev@MacroMan5"
+          echo "/plugin install lazy@MacroMan5"
