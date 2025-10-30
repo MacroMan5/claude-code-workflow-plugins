@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv run --script
+#!/usr/bin/env python
 # /// script
 # requires-python = ">=3.11"
 # dependencies = []
@@ -16,10 +16,20 @@ Note: Formatting is handled by separate post_tool_use_format.py hook
 """
 
 import json
+import logging
 import os
 import sys
 import subprocess
 from pathlib import Path
+
+# Configure logging to stderr with timestamp
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    stream=sys.stderr,
+)
+logger = logging.getLogger(__name__)
 
 
 def check_tdd_required() -> bool:

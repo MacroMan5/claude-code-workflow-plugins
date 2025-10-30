@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv run --script
+#!/usr/bin/env python
 # /// script
 # requires-python = ">=3.11"
 # dependencies = []
@@ -34,6 +34,13 @@ import os
 import time
 from datetime import datetime
 
+# Configure logging to stderr with timestamp
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    stream=sys.stderr,
+)
 logger = logging.getLogger(__name__)
 
 # Module-level compiled regex patterns for performance (10-100x faster)
@@ -545,18 +552,25 @@ def manage_session_data(session_id: str, prompt: str) -> None:
 def main():
     """Hook entry point."""
     try:
+        logger.info("UserPromptSubmit hook starting")
+
         # Read JSON input from stdin
         input_data = json.loads(sys.stdin.read())
+        logger.debug("Parsed input data successfully")
 
         # Extract session_id and prompt
         session_id = input_data.get("session_id", "unknown")
         original_prompt = input_data.get("prompt", "")
+        logger.info(f"Session ID: {session_id}, Prompt length: {len(original_prompt)}")
 
         # Get context
+        logger.debug("Gathering git context")
         git_context = get_git_context()
+        logger.debug("Checking for current task")
         current_task = get_current_task()
 
         # Format base context injection (git + current task)
+        logger.debug("Formatting context injection")
         context_injection = format_context_injection(git_context, current_task)
 
         # Lightweight output-style selection
@@ -564,23 +578,31 @@ def main():
         style_conf = 0.0
         style_reason = ""
         if os.getenv("LAZYDEV_DISABLE_STYLE") not in {"1", "true", "TRUE"}:
+            logger.debug("Selecting output style")
             sel, conf, reason = choose_output_style(original_prompt)
             if sel != "off":
                 style_name, style_conf, style_reason = sel, conf, reason
+                logger.info(f"Output style selected: {sel} (confidence: {conf:.2f}, reason: {reason})")
                 style_block = (
                     f"\n\n## Output Style (Auto)\n\n{build_style_block(sel)}\n"
                 )
             else:
+                logger.info("Output style explicitly disabled")
                 style_block = ""
         else:
+            logger.info("Output style disabled via LAZYDEV_DISABLE_STYLE")
             style_block = ""
 
         # Lightweight context pack
         context_pack_block = ""
         if os.getenv("LAZYDEV_DISABLE_CONTEXT_PACK") not in {"1", "true", "TRUE"}:
+            logger.debug("Building context pack")
             pack = build_context_pack()
             if pack:
+                logger.info("Context pack generated successfully")
                 context_pack_block = f"\n\n## Context Pack (Auto)\n\n{pack}\n"
+        else:
+            logger.info("Context pack disabled via LAZYDEV_DISABLE_CONTEXT_PACK")
 
         # Build additional context only (per Anthropic hooks reference):
         # For UserPromptSubmit, stdout JSON with hookSpecificOutput.additionalContext
@@ -595,18 +617,27 @@ def main():
 
         # Auto-activate Memory Graph skill when appropriate (opt-out with env)
         if os.getenv("LAZYDEV_DISABLE_MEMORY_SKILL") not in {"1", "true", "TRUE"}:
+            logger.debug("Detecting memory intent")
             mi = detect_memory_intent(original_prompt)
             if mi.get("enabled"):
+                logger.info(f"Memory graph skill activated: intents={mi['intents']}, mentions={len(mi['mentions'])}")
                 additional_parts.append(
                     build_memory_skill_block(mi["intents"], mi["mentions"])
                 )
+            else:
+                logger.debug("No memory intent detected")
+        else:
+            logger.info("Memory skill disabled via LAZYDEV_DISABLE_MEMORY_SKILL")
 
         additional_context = "".join(additional_parts)
+        logger.info(f"Total additional context length: {len(additional_context)} characters")
 
         # Log the prompt
+        logger.debug("Logging prompt to file")
         log_prompt(session_id, input_data)
 
         # Manage session data
+        logger.debug("Managing session data")
         manage_session_data(session_id, original_prompt)
 
         # Output JSON per hooks reference to append context
@@ -622,20 +653,21 @@ def main():
         }
 
         print(json.dumps(hook_output))
+        logger.info("UserPromptSubmit hook completed successfully")
 
         sys.exit(0)
 
     except json.JSONDecodeError as e:
         # Handle JSON decode errors gracefully
-        logger.warning(f"JSON decode error in user_prompt_submit: {type(e).__name__}")
+        logger.error(f"JSON decode error in user_prompt_submit: {type(e).__name__} - {e}")
         sys.exit(0)
     except IOError as e:
         # Handle file I/O errors gracefully
-        logger.warning(f"I/O error in user_prompt_submit: {type(e).__name__}")
+        logger.error(f"I/O error in user_prompt_submit: {type(e).__name__} - {e}")
         sys.exit(0)
     except Exception as e:
         # Handle any other errors gracefully
-        logger.warning(f"Unexpected error in user_prompt_submit: {type(e).__name__}")
+        logger.error(f"Unexpected error in user_prompt_submit: {type(e).__name__} - {e}", exc_info=True)
         sys.exit(0)
 
 
