@@ -21,7 +21,7 @@ import os
 import sys
 from pathlib import Path
 from datetime import datetime
-from hook_utils import sanitize_for_logging, sanitize_dict_for_logging
+from hook_utils import sanitize_for_logging
 
 # Configure logging to stderr with timestamp
 logging.basicConfig(

@@ -574,14 +574,10 @@ def main():
         context_injection = format_context_injection(git_context, current_task)
 
         # Lightweight output-style selection
-        style_name = None
-        style_conf = 0.0
-        style_reason = ""
         if os.getenv("LAZYDEV_DISABLE_STYLE") not in {"1", "true", "TRUE"}:
             logger.debug("Selecting output style")
             sel, conf, reason = choose_output_style(original_prompt)
             if sel != "off":
-                style_name, style_conf, style_reason = sel, conf, reason
                 logger.info(
                     f"Output style selected: {sel} (confidence: {conf:.2f}, reason: {reason})"
                 )

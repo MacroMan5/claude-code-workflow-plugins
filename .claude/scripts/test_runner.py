@@ -85,7 +85,7 @@ def run_tests(path: str = "tests/", session_id: Optional[str] = None) -> int:
             pass
 
     if result.returncode != 0:
-        print(f"\n[ERROR] Tests failed")
+        print("\n[ERROR] Tests failed")
         if result.stderr:
             print(f"Error details: {result.stderr}")
         log_entry["status"] = "failed"

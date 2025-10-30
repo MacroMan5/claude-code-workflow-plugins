@@ -5,7 +5,6 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Tuple
 
 
 def run_pipeline(path: str, session_id: str = None) -> int:

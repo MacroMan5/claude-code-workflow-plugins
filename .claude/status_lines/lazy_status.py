@@ -10,7 +10,9 @@ Shows:
 """
 
 from __future__ import annotations
-import json, os, shutil
+import json
+import os
+import shutil
 from pathlib import Path
 from datetime import datetime
 

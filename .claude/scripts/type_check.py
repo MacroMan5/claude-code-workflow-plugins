@@ -61,8 +61,8 @@ def type_check(path: str, session_id: Optional[str] = None) -> int:
         print(result.stdout)
 
     if result.returncode != 0:
-        print(f"\n[ERROR] Type checking failed")
-        print(f"[INFO] Fix type errors and re-run")
+        print("\n[ERROR] Type checking failed")
+        print("[INFO] Fix type errors and re-run")
         log_entry["status"] = "failed"
 
         # Parse errors for structured logging

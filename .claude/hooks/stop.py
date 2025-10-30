@@ -315,7 +315,7 @@ def main():
             print(json.dumps(output))
 
             # Print success message
-            print(f"\n✅ All tests passing! Ready for review.\n", file=sys.stderr)
+            print("\n✅ All tests passing! Ready for review.\n", file=sys.stderr)
 
             sys.exit(0)
 

@@ -76,7 +76,7 @@ def lint_code(path: str, session_id: Optional[str] = None) -> int:
             print(result.stdout)
 
     if result.returncode != 0:
-        print(f"[ERROR] Ruff check failed with issues")
+        print("[ERROR] Ruff check failed with issues")
         log_entry["status"] = "failed"
         _write_log(log_entry, session_id)
         return result.returncode

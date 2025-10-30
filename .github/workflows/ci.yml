@@ -127,11 +127,11 @@ jobs:
         run: |
           count=$(find .claude/skills -name "SKILL.md" | wc -l)
           echo "Found $count skills"
-          if [ $count -ne 17 ]; then
-            echo "ERROR: Expected 17 skills, found $count"
+          if [ $count -ne 22 ]; then
+            echo "ERROR: Expected 22 skills, found $count"
             exit 1
           fi
-          echo "✅ All 17 skills present on ${{ matrix.os }}"
+          echo "✅ All 22 skills present on ${{ matrix.os }}"
         shell: bash
 
       - name: Run tests (if tests exist)

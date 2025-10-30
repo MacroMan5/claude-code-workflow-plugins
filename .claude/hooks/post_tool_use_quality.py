@@ -20,7 +20,6 @@ import logging
 import os
 import sys
 import subprocess
-from pathlib import Path
 
 # Configure logging to stderr with timestamp
 logging.basicConfig(

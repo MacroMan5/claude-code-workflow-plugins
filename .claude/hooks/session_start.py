@@ -284,7 +284,7 @@ def main():
         ensure_memory_directory()
 
         # Check environment variables (new feature)
-        env_status = check_environment_variables()
+        check_environment_variables()
 
         # Read JSON input from stdin
         input_data = json.load(sys.stdin)
