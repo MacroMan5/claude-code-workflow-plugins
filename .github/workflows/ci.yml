@@ -261,8 +261,7 @@ jobs:
               assert "name" in data, "Missing name in plugin.json"
               assert "version" in data, "Missing version in plugin.json"
               assert "description" in data, "Missing description in plugin.json"
-              assert data["version"] == "2.2.0", "Version mismatch in plugin.json"
-              print("OK: plugin.json is valid")
+              print(f"OK: plugin.json is valid (version: {data['version']})")
           PYTHON_SCRIPT
 
       - name: Validate marketplace.json
@@ -272,6 +271,7 @@ jobs:
           with open(".claude-plugin/marketplace.json") as f:
               data = json.load(f)
               assert "name" in data, "Missing name in marketplace.json"
+              assert "version" in data, "Missing version in marketplace.json"
               assert " " not in data["name"], "Marketplace name cannot contain spaces (use kebab-case)"
               assert "owner" in data, "Missing owner in marketplace.json"
               assert "plugins" in data, "Missing plugins in marketplace.json"
@@ -280,10 +280,28 @@ jobs:
                   assert "source" in plugin, f"Missing source for plugin {plugin.get('name', 'unknown')}"
                   source = plugin["source"]
                   assert source == "." or source.startswith("./"), f"Plugin source must be '.' or start with './' (got: {source})"
-              print("OK: marketplace.json is valid")
+              print(f"OK: marketplace.json is valid (version: {data['version']})")
               print(f"  - Marketplace: {data['name']}")
               print(f"  - Owner: {data['owner']['name']}")
               print(f"  - Plugins: {len(data['plugins'])}")
+          PYTHON_SCRIPT
+
+      - name: Cross-validate version consistency
+        run: |
+          python3 << 'PYTHON_SCRIPT'
+          import json
+          with open(".claude-plugin/plugin.json") as f:
+              plugin_data = json.load(f)
+          with open(".claude-plugin/marketplace.json") as f:
+              marketplace_data = json.load(f)
+
+          plugin_version = plugin_data.get("version")
+          marketplace_version = marketplace_data.get("version")
+
+          assert plugin_version == marketplace_version, \
+              f"Version mismatch: plugin.json has '{plugin_version}' but marketplace.json has '{marketplace_version}'"
+
+          print(f"✓ Version consistency check passed: {plugin_version}")
           PYTHON_SCRIPT
 
   check-docs:
