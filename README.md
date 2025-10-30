@@ -206,7 +206,7 @@ gh repo set-default
 # → Fixes issues and re-reviews
 ```
 
-**See [WORKFLOW.md](./WORKFLOW.md) for detailed workflow documentation.**
+**See [WORKFLOW.md](./docs/plugins/WORKFLOW.md) for detailed workflow documentation.**
 
 ### Review and Debug Reports
 
@@ -263,7 +263,7 @@ Agents are automatically invoked based on context (Anthropic pattern):
 - **reviewer** → Reviews code quality
 - **tester** → Writes comprehensive tests
 
-**See [SUB_AGENTS.md](./SUB_AGENTS.md) for complete agent specifications.**
+**See [SUB_AGENTS.md](./docs/plugins/SUB_AGENTS.md) for complete agent specifications.**
 
 ### Memory System
 
@@ -285,7 +285,7 @@ Semi-automatic persistence of durable facts (AI-assisted):
 - Memory persists across sessions within same project
 - No global pollution across repositories
 
-**See [MEMORY.md](./MEMORY.md) for complete memory system documentation.**
+**See [MEMORY.md](./docs/plugins/MEMORY.md) for complete memory system documentation.**
 
 ---
 
@@ -496,7 +496,7 @@ git push origin feature/my-feature
 1. Create `.claude/agents/my-agent.md`
 2. Use YAML frontmatter + Markdown prompt
 3. Test with relevant command
-4. Document in SUB_AGENTS.md
+4. Document in docs/plugins/SUB_AGENTS.md
 
 ### Add New Command
 
@@ -522,9 +522,9 @@ git push origin feature/my-feature
 - **[CLAUDE.md](./CLAUDE.md)** - Guide for Claude Code when working with this framework
 
 ### Core Documentation
-- **[WORKFLOW.md](./WORKFLOW.md)** - Complete workflow guide (commit-per-task, PR-per-story pattern)
-- **[MEMORY.md](./MEMORY.md)** - Automatic memory system with MCP Memory
-- **[SUB_AGENTS.md](./SUB_AGENTS.md)** - Agent registry and specifications
+- **[WORKFLOW.md](./docs/plugins/WORKFLOW.md)** - Complete workflow guide (commit-per-task, PR-per-story pattern)
+- **[MEMORY.md](./docs/plugins/MEMORY.md)** - Automatic memory system with MCP Memory
+- **[SUB_AGENTS.md](./docs/plugins/SUB_AGENTS.md)** - Agent registry and specifications
 
 ### Reference
 - **[CHANGELOG.md](./CHANGELOG.md)** - Version history and release notes

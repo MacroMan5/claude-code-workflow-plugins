@@ -51,50 +51,53 @@ def create_event_entry(input_data: dict, override_event: str | None) -> dict:
     """
     # Extract core event data
     event = {
-        'timestamp': datetime.now().isoformat(),
-        'session_id': input_data.get('session_id', 'unknown'),
-        'event_type': override_event or input_data.get('event_type') or input_data.get('hook_event') or 'Unknown',
+        "timestamp": datetime.now().isoformat(),
+        "session_id": input_data.get("session_id", "unknown"),
+        "event_type": override_event
+        or input_data.get("event_type")
+        or input_data.get("hook_event")
+        or "Unknown",
     }
 
     # Add tool-specific data
-    tool_name = input_data.get('tool_name')
+    tool_name = input_data.get("tool_name")
     if tool_name:
-        event['tool'] = tool_name
+        event["tool"] = tool_name
 
-    tool_input = input_data.get('tool_input')
+    tool_input = input_data.get("tool_input")
     if tool_input:
         # Sanitize tool input - don't log full file contents OR sensitive data
         sanitized_input = {}
 
-        if 'command' in tool_input:
+        if "command" in tool_input:
             # Sanitize command to remove secrets
-            sanitized_input['command'] = sanitize_for_logging(tool_input['command'])
+            sanitized_input["command"] = sanitize_for_logging(tool_input["command"])
 
-        if 'description' in tool_input:
-            sanitized_input['description'] = tool_input['description']
+        if "description" in tool_input:
+            sanitized_input["description"] = tool_input["description"]
 
-        if 'file_path' in tool_input:
-            sanitized_input['file_path'] = tool_input['file_path']
+        if "file_path" in tool_input:
+            sanitized_input["file_path"] = tool_input["file_path"]
 
-        if 'pattern' in tool_input:
-            sanitized_input['pattern'] = tool_input['pattern']
+        if "pattern" in tool_input:
+            sanitized_input["pattern"] = tool_input["pattern"]
 
         if sanitized_input:
-            event['tool_input'] = sanitized_input
+            event["tool_input"] = sanitized_input
 
     # Add result if available
-    result = input_data.get('result')
+    result = input_data.get("result")
     if result:
         # Truncate long results
         if isinstance(result, str) and len(result) > 500:
-            event['result'] = result[:500] + '... (truncated)'
+            event["result"] = result[:500] + "... (truncated)"
         else:
-            event['result'] = result
+            event["result"] = result
 
     # Add error info if available
-    error = input_data.get('error')
+    error = input_data.get("error")
     if error:
-        event['error'] = error
+        event["error"] = error
 
     return event
 
