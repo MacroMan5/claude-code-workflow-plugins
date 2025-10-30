@@ -111,16 +111,16 @@ def log_to_jsonl(session_id: str, event: dict) -> None:
         event: Event dictionary to log
     """
     # Create session directory
-    base_dir = Path(os.getenv('LAZYDEV_LOG_DIR', '.claude/data/logs'))
+    base_dir = Path(os.getenv("LAZYDEV_LOG_DIR", ".claude/data/logs"))
     session_dir = base_dir / session_id
     session_dir.mkdir(parents=True, exist_ok=True)
 
     # JSONL log file
-    log_file = session_dir / 'events.jsonl'
+    log_file = session_dir / "events.jsonl"
 
     # Append event as single JSON line
-    with open(log_file, 'a', encoding='utf-8') as f:
-        f.write(json.dumps(event) + '\n')
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(json.dumps(event) + "\n")
 
 
 def log_to_master(event: dict) -> None:
@@ -130,14 +130,14 @@ def log_to_master(event: dict) -> None:
     Args:
         event: Event dictionary to log
     """
-    log_dir = Path(os.getenv('LAZYDEV_LOG_DIR', '.claude/data/logs'))
+    log_dir = Path(os.getenv("LAZYDEV_LOG_DIR", ".claude/data/logs"))
     log_dir.mkdir(parents=True, exist_ok=True)
 
-    master_log = log_dir / 'all_events.jsonl'
+    master_log = log_dir / "all_events.jsonl"
 
     # Append to master JSONL
-    with open(master_log, 'a', encoding='utf-8') as f:
-        f.write(json.dumps(event) + '\n')
+    with open(master_log, "a", encoding="utf-8") as f:
+        f.write(json.dumps(event) + "\n")
 
 
 def main():
@@ -148,7 +148,7 @@ def main():
         # Read JSON input from stdin
         input_data = json.load(sys.stdin)
 
-        session_id = input_data.get('session_id', 'unknown')
+        session_id = input_data.get("session_id", "unknown")
 
         # Create structured event
         event = create_event_entry(input_data, override_event)
@@ -161,10 +161,16 @@ def main():
 
         # Output confirmation
         output = {
-            'logged': True,
-            'session_id': session_id,
-            'log_file': str((Path(os.getenv('LAZYDEV_LOG_DIR', '.claude/data/logs')) / session_id / 'events.jsonl')),
-            'event_type': event.get('event_type')
+            "logged": True,
+            "session_id": session_id,
+            "log_file": str(
+                (
+                    Path(os.getenv("LAZYDEV_LOG_DIR", ".claude/data/logs"))
+                    / session_id
+                    / "events.jsonl"
+                )
+            ),
+            "event_type": event.get("event_type"),
         }
 
         print(json.dumps(output))
