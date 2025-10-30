@@ -1,21 +1,18 @@
 ---
-description: Execute task with quality pipeline
+description: Execute task with quality pipeline and explicit agent orchestration
 argument-hint: "[TASK-ID] [--user-story US-X] [--issue N] [--with-research] [--dry-run] [--continue-from STAGE] [--parallel MODE]"
 allowed-tools: Read, Write, Edit, Bash, Task, Glob, Grep
 ---
 
 # Task Execution Command
 
-Execute single task or entire user story through full quality pipeline with complete git workflow.
+Execute single task or entire user story through full quality pipeline with explicit agent invocation and parallelization.
 
-## Agent Routing
-
-This command uses automatic agent routing via `.claude/core/agent_registry.json`:
-- **Research**: intent "research-topic" → research agent
-- **Implementation**: intent "implement-code" → coder agent
-- **Review**: intent "review-code" → reviewer agent
-
-Agents are invoked automatically based on pipeline stage. No manual agent selection required.
+**CRITICAL WORKFLOW RULES**:
+1. Each completed task = **ONE COMMIT** (NOT PR)
+2. PRs only at story level via `/lazy story-review`
+3. Explicit agent invocation via **Task tool** (NOT automatic routing)
+4. Parallel execution for independent tasks via **multiple Task tool calls in single message**
 
 ## Aliases
 
@@ -79,16 +76,6 @@ Parse arguments to extract named variables:
 # Dry-run parallel execution (preview execution plan)
 /lazy task-exec all --story US-3.4 --parallel auto --dry-run
 ```
-
-## Memory Graph Usage (Auto)
-
-When tasks surface durable facts (owners, endpoints, IDs) or new entities (services, people, repos), use the Memory MCP tools:
-- `mcp__memory__search_nodes` before creation to avoid duplicates
-- `mcp__memory__create_entities` for missing entities
-- `mcp__memory__add_observations` for atomic facts (include dates when useful)
-- `mcp__memory__create_relations` to connect entities (active voice: depends_on, owned_by, maintained_by)
-
-See `.claude/skills/memory-graph/` for playbooks and I/O shapes. This is auto-hinted by the UserPromptSubmit hook; you can still invoke manually.
 
 ---
 
@@ -401,29 +388,6 @@ echo "All files validated ✓"
 echo ""
 ```
 
-**Dry-Run Output for Phase 0 (Task Resolution)**:
-
-If `$dry_run` is "true", output the plan without executing:
-
-```
-DRY RUN: Task and Story Resolution
-===================================
-Resolution Mode: directory
-
-Would load story from:
-  Story Dir: ./project-management/US-STORY/US-3.4-oauth2-authentication
-  Story File: ./project-management/US-STORY/US-3.4-oauth2-authentication/US-story.md
-  Tasks Dir: ./project-management/US-STORY/US-3.4-oauth2-authentication/TASKS
-
-Would load tasks:
-  - TASK-1.1: Setup OAuth2 Google provider
-  - TASK-1.2: Add token validation
-  - TASK-1.3: Implement refresh logic
-  - TASK-1.4: Add error handling
-
-Proceeding to git workflow setup...
-```
-
 ---
 
 ### Phase 1: Git Workflow Setup
@@ -543,14 +507,6 @@ fi
 # Create story start tag
 git tag "story/${story_id}-start" -f -m "Start of user story ${story_id}"
 
-# Verify remote tracking (if remote configured)
-if git remote | grep -q "origin"; then
-    if ! git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
-        echo "Setting up remote tracking for: $branch_name"
-        git branch --set-upstream-to=origin/$branch_name $branch_name 2>/dev/null || true
-    fi
-fi
-
 # Display git state
 echo "Git State:"
 echo "  Branch: $(git branch --show-current)"
@@ -558,95 +514,13 @@ echo "  Commit: $(git log --oneline -1)"
 echo "  Status: $(git status --porcelain | wc -l) uncommitted changes"
 ```
 
-#### Step 3: Scan Existing Progress
-
-Before starting work, identify what's already been done:
-
-```bash
-# List existing task tags
-completed_tasks=$(git tag -l 'task/*-committed' | sed 's/task\///' | sed 's/-committed//')
-
-if [[ -n "$completed_tasks" ]]; then
-    echo "Found existing completed tasks:"
-    echo "$completed_tasks"
-
-    # If resuming, skip completed tasks
-    if [[ "$task_id" == "all" ]]; then
-        echo "Resuming from next pending task..."
-    fi
-fi
-
-# Show all task-related tags
-echo "Task tags:"
-git tag -l 'task/*' | sort
-```
-
-**Dry-Run Output for Phase 0**:
-
-If `$dry_run` is "true", output the plan without executing:
-
-```
-DRY RUN: Git Workflow Setup
-============================
-Would create/checkout branch: feat/US-3.4-oauth2-authentication
-Would tag: story/US-3.4-start
-Would set up remote tracking: origin/feat/US-3.4-oauth2-authentication
-
-Existing progress:
-  Completed tasks: None
-  Remaining tasks: TASK-1.1, TASK-1.2, TASK-1.3, TASK-1.4
-```
-
 ---
 
-### Phase 2: Task Implementation
+### Phase 2: Task Implementation with Explicit Agent Invocation
+
+**CRITICAL**: All agents are invoked explicitly via **Task tool**, NOT automatic routing.
 
 This phase handles single task or parallel task groups based on `$parallel` mode and dependency analysis.
-
-#### Dependency Analysis (for "all" task execution)
-
-When `$task_id` is "all", analyze task dependencies to group independent tasks:
-
-```python
-# Pseudo-code for dependency analysis
-def analyze_dependencies(tasks_md_path):
-    tasks = parse_tasks_md(tasks_md_path)
-    groups = []
-    current_group = []
-
-    for task in tasks:
-        if task.has_dependencies():
-            # Start new group if current has tasks
-            if current_group:
-                groups.append(current_group)
-                current_group = []
-            # Check if dependencies are satisfied
-            if all_dependencies_completed(task.dependencies):
-                current_group.append(task)
-        else:
-            # No dependencies - add to current group
-            current_group.append(task)
-
-    # Add final group
-    if current_group:
-        groups.append(current_group)
-
-    return groups
-```
-
-**Example Dependency Groups**:
-
-```
-TASKS.md:
-- TASK-1.1: Setup API client (no dependencies)
-- TASK-1.2: Build authentication (no dependencies)
-- TASK-1.3: Add validation (depends on TASK-1.1)
-- TASK-1.4: Error handling (depends on TASK-1.2)
-
-Execution Plan:
-  Group 1 (parallel): TASK-1.1, TASK-1.2
-  Group 2 (parallel): TASK-1.3, TASK-1.4
-```
 
 #### Single Task Execution
 
@@ -681,68 +555,108 @@ For a single task (when `$task_id` is not "all"):
    git tag "task/$task_id-start" -f -m "Start implementation of $task_id"
    ```
 
-3. **Research Agent (Optional)**
+3. **Research Agent (Optional - Explicit Invocation via Task tool)**
 
-   If `$with_research` is "true", the research agent is invoked automatically via the agent registry.
-
-   ```markdown
-   # Research agent invoked automatically (intent: "research-topic")
-   # Agent registry routes to: .claude/agents/research.md
-
-   You are the Research Agent for LAZY-DEV-FRAMEWORK.
-
-   ## Task
-   $task_description
-
-   ## Research Goals
-   - Identify best practices for this task
-   - Find relevant libraries/frameworks
-   - Note potential pitfalls
-   - Gather code examples
-
-   ## Output
-   Create research-context.md with findings organized by:
-   1. Recommended approach
-   2. Code examples
-   3. Dependencies needed
-   4. Testing strategy
-   ```
-
-4. **Coder Agent**
-
-   The coder agent is invoked automatically via the agent registry for implementation tasks.
+   If `$with_research` is "true", invoke research agent explicitly:
 
    ```markdown
-   # Coder agent invoked automatically (intent: "implement-code")
-   # Agent registry routes to: .claude/agents/coder.md
+   # EXPLICIT AGENT INVOCATION using Task tool
+   # Launch research agent with substituted context
 
-   You are the Coder Agent for LAZY-DEV-FRAMEWORK.
-
-   ## Task
-   $task_content
-
-   ## Research Context (if available)
-   $research_context
-
-   ## Acceptance Criteria
-   $acceptance_criteria
-
-   ## GitHub Issue
-   $github_issue (if present)
-
-   ## Instructions
-   1. Implement the functionality described in the task
-   2. Follow TDD: Write tests FIRST, then implementation
-   3. Add comprehensive type hints
-   4. Include docstrings for all functions/classes
-   5. Handle edge cases and errors
-   6. Ensure cross-OS compatibility
-
-   ## Output
-   - Implementation files (*.py)
-   - Test files (test_*.py)
-   - Updated documentation if needed
+   Use Task tool to invoke research agent:
    ```
+
+   **Agent Invocation Pattern**:
+
+   ```python
+   # Invoke research agent explicitly via Task tool
+   Task(
+       prompt=f"""
+You are the Research Agent for LAZY-DEV-FRAMEWORK.
+
+## Task Context
+**Task**: {task_title}
+**Description**: {task_description}
+**Technologies**: {extracted_technologies_from_task}
+
+## Research Goals
+- Official documentation for: {extracted_technologies}
+- Find relevant libraries/frameworks
+- Note potential pitfalls
+- Gather code examples
+- Identify best practices
+
+## Research Depth
+quick (or comprehensive if complex)
+
+## Output Format
+Create research findings with:
+1. Official Documentation (URLs, versions)
+2. Key APIs/methods
+3. Code examples
+4. Best practices
+5. Common pitfalls
+6. Recommendations
+"""
+   )
+   ```
+
+   **Expected Output**: Research context stored for coder agent
+
+4. **Coder Agent (Explicit Invocation via Task tool)**
+
+   Invoke coder agent explicitly for implementation:
+
+   ```markdown
+   # EXPLICIT AGENT INVOCATION using Task tool
+   # Launch coder agent with substituted context
+   ```
+
+   **Agent Invocation Pattern**:
+
+   ```python
+   # Invoke coder agent explicitly via Task tool
+   Task(
+       prompt=f"""
+You are the Coder Agent for LAZY-DEV-FRAMEWORK.
+
+## Task
+{task_content}
+
+## Research Context (if available)
+{research_context if with_research else "No research requested"}
+
+## Acceptance Criteria
+{acceptance_criteria}
+
+## GitHub Issue
+{f"Closes #{github_issue}" if github_issue else "N/A"}
+
+## Instructions
+1. **Follow TDD**: Write tests FIRST, then implementation
+2. Add comprehensive type hints (Python 3.11+)
+3. Include docstrings (Google style) for all functions/classes
+4. Handle edge cases and errors
+5. Ensure cross-OS compatibility (Windows/Linux/macOS)
+6. Security best practices (input validation, no hardcoded secrets)
+
+## Code Quality Requirements
+- Type hints on all functions
+- Docstrings with Args, Returns, Raises
+- Error handling with specific exceptions
+- Input validation
+- Minimum 80% test coverage
+
+## Output
+Create:
+1. Implementation files (*.py)
+2. Test files (test_*.py)
+3. Update relevant documentation
+"""
+   )
+   ```
+
+   **Expected Output**: Implementation files, test files, updated docs
 
 #### Parallel Task Execution
 
@@ -750,34 +664,108 @@ When `$parallel` is "auto" or "true" and multiple independent tasks exist:
 
 1. **Group Independent Tasks**
 
-   Analyze dependencies and create execution groups.
+   Analyze dependencies and create execution groups:
 
-2. **Launch Parallel Coding Agents**
+   ```python
+   # Pseudo-code for dependency analysis
+   def analyze_dependencies(task_files):
+       tasks = parse_task_files(task_files)
+       groups = []
+       current_group = []
 
-   For each group, launch multiple coder agents in parallel using a single message with multiple Task tool calls:
+       for task in tasks:
+           if task.has_dependencies():
+               # Start new group if current has tasks
+               if current_group:
+                   groups.append(current_group)
+                   current_group = []
+               # Check if dependencies are satisfied
+               if all_dependencies_completed(task.dependencies):
+                   current_group.append(task)
+           else:
+               # No dependencies - add to current group
+               current_group.append(task)
 
-   ```markdown
-   # Message with parallel Task tool invocations
-   Launching Group 1: TASK-1.1 and TASK-1.2 in parallel
+       # Add final group
+       if current_group:
+           groups.append(current_group)
 
-   [Task tool call 1: Coder agent for TASK-1.1]
-   [Task tool call 2: Coder agent for TASK-1.2]
+       return groups
    ```
 
-   Each agent receives:
-   - Only its specific task (not entire story)
-   - Focused, small-context prompt
-   - Minimal token usage
+   **Example Dependency Groups**:
+
+   ```
+   TASKS.md:
+   - TASK-1.1: Setup API client (no dependencies)
+   - TASK-1.2: Build authentication (no dependencies)
+   - TASK-1.3: Add validation (depends on TASK-1.1)
+   - TASK-1.4: Error handling (depends on TASK-1.2)
+
+   Execution Plan:
+     Group 1 (parallel): TASK-1.1, TASK-1.2
+     Group 2 (parallel): TASK-1.3, TASK-1.4
+   ```
+
+2. **Launch Parallel Agents (Multiple Task Tool Calls in Single Message)**
+
+   **CRITICAL PATTERN**: For each group, launch multiple agents in parallel using **a single message with multiple Task tool calls**:
+
+   ```markdown
+   # PARALLEL EXECUTION PATTERN
+   # Launch multiple coder agents in parallel for independent tasks
+
+   ## Group 1: 2 independent tasks
+
+   # Message with multiple Task tool invocations (in single message):
+
+   Task Call 1 - TASK-1.1:
+   Task(
+       prompt="""
+You are the Coder Agent for LAZY-DEV-FRAMEWORK.
+
+## Task
+TASK-1.1: Setup API client
+
+[Task-specific context only - NOT full story]
+
+## Instructions
+[Same as single task mode]
+"""
+   )
+
+   Task Call 2 - TASK-1.2:
+   Task(
+       prompt="""
+You are the Coder Agent for LAZY-DEV-FRAMEWORK.
+
+## Task
+TASK-1.2: Build authentication
+
+[Task-specific context only - NOT full story]
+
+## Instructions
+[Same as single task mode]
+"""
+   )
+
+   # Both agents run independently in parallel
+   # Each agent sees only its specific task context (minimal tokens)
+   ```
+
+   **Key Benefits**:
+   - 3-4 independent tasks complete in ~same time as 1 task
+   - Each agent has minimal context (only its task, not full story)
+   - Lower total token usage vs sequential with full story context
+   - Scalable to 10+ task stories
 
 3. **Wait for All Agents to Complete**
 
    All agents in the group must complete before proceeding to quality pipeline.
 
-**Parallel Execution Benefits**:
-- 3-4 independent tasks complete in ~same time as 1 task
-- Each agent sees only its task context (lower token cost)
-- Better quality through dedicated reviewers per task
-- Scalable to 10+ task stories
+4. **Repeat for Next Group**
+
+   After Group 1 completes and passes quality pipeline, launch Group 2 in parallel.
 
 **Parallel Modes**:
 - `--parallel auto` (default): Automatically detect independent tasks and parallelize
@@ -790,12 +778,12 @@ When `$parallel` is "auto" or "true" and multiple independent tasks exist:
 DRY RUN: Parallel Execution Plan
 =================================
 Group 1 (2 tasks in parallel):
-  - TASK-1.1: Setup API client [Agent 1 + Reviewer 1]
-  - TASK-1.2: Build authentication [Agent 2 + Reviewer 2]
+  - TASK-1.1: Setup API client [Coder Agent 1 + Reviewer Agent 1]
+  - TASK-1.2: Build authentication [Coder Agent 2 + Reviewer Agent 2]
 
 Group 2 (2 tasks in parallel):
-  - TASK-1.3: Add validation [Agent 3 + Reviewer 3] (depends on TASK-1.1)
-  - TASK-1.4: Error handling [Agent 4 + Reviewer 4] (depends on TASK-1.2)
+  - TASK-1.3: Add validation [Coder Agent 3 + Reviewer Agent 3] (depends on TASK-1.1)
+  - TASK-1.4: Error handling [Coder Agent 4 + Reviewer Agent 4] (depends on TASK-1.2)
 
 Would create 4 commits (1 per task)
 Estimated time: ~93s (vs ~176s sequential)
@@ -804,7 +792,7 @@ Estimated speedup: 1.88x
 
 ---
 
-### Phase 2: Quality Pipeline (MUST ALL PASS)
+### Phase 3: Quality Pipeline (MUST ALL PASS)
 
 **CRITICAL**: Every task MUST pass all quality gates sequentially. FAIL-FAST on any error.
 
@@ -885,27 +873,6 @@ if [[ $coverage -lt 80 ]]; then
 fi
 ```
 
-#### Continue from Failure
-
-If `$continue_from` is set, skip to that stage:
-
-```bash
-case "$continue_from" in
-    format)
-        # Skip research, code gen; start from format
-        ;;
-    lint)
-        # Skip research, code gen, format; start from lint
-        ;;
-    type)
-        # Skip research, code gen, format, lint; start from type
-        ;;
-    test)
-        # Skip research, code gen, format, lint, type; start from test
-        ;;
-esac
-```
-
 **Quality Pipeline Output**:
 
 ```
@@ -922,50 +889,64 @@ Proceeding to code review...
 
 ---
 
-### Phase 3: Review & Commit
+### Phase 4: Review & Commit
 
 **ONLY if quality pipeline passes**, proceed to review and commit.
 
-#### Step 1: Reviewer Agent
+#### Step 1: Reviewer Agent (Explicit Invocation via Task tool)
 
-The reviewer agent is invoked automatically via the agent registry to validate implementation:
+Invoke reviewer agent explicitly to validate implementation:
 
 ```markdown
-# Reviewer agent invoked automatically (intent: "review-code")
-# Agent registry routes to: .claude/agents/reviewer.md
+# EXPLICIT AGENT INVOCATION using Task tool
+# Launch reviewer agent with code changes and acceptance criteria
+```
 
+**Agent Invocation Pattern**:
+
+```python
+# Invoke reviewer agent explicitly via Task tool
+Task(
+    prompt=f"""
 You are the Reviewer Agent for LAZY-DEV-FRAMEWORK.
 
 ## Task Being Reviewed
-$task_description
+{task_description}
 
-## Code to Review
-[All implementation files from coder agent]
+## Code Changes
+{git_diff_output}
 
 ## Acceptance Criteria
-$acceptance_criteria
+{acceptance_criteria}
 
 ## Review Checklist
-1. Code matches acceptance criteria
-2. Tests cover all functionality
-3. Error handling is comprehensive
-4. Edge cases are addressed
-5. Documentation is clear
-6. Cross-OS compatibility maintained
-7. Security best practices followed
-8. Performance is acceptable
+1. Code Quality: Type hints, docstrings, clean code, no code smells
+2. Security: Input validation, no secrets, error handling, OWASP Top 10
+3. Testing: Unit tests present, tests pass, edge cases covered, >= 80% coverage
+4. Functionality: Meets acceptance criteria, handles edge cases, performance acceptable
+5. Documentation: Docstrings updated, README updated if needed
 
 ## Output Format
-**APPROVED** or **CHANGES REQUESTED**
+Return JSON:
+{{
+  "status": "APPROVED" | "REQUEST_CHANGES",
+  "issues": [
+    {{
+      "severity": "CRITICAL" | "WARNING" | "SUGGESTION",
+      "file": "path/to/file.py",
+      "line": 42,
+      "description": "What's wrong",
+      "fix": "How to fix it"
+    }}
+  ],
+  "summary": "Overall assessment"
+}}
 
-If APPROVED:
-- Brief summary of implementation quality
-- Highlight any notable strengths
-
-If CHANGES REQUESTED:
-- List specific changes needed
-- Reference acceptance criteria not met
-- Provide actionable feedback
+## Decision Criteria
+- APPROVED: No critical issues, warnings are minor
+- REQUEST_CHANGES: Critical issues OR multiple warnings
+"""
+)
 ```
 
 **If Review NOT Approved**:
@@ -984,6 +965,8 @@ Action: Fix issues and re-run task-exec
 **STOP** execution and return for fixes.
 
 #### Step 2: Git Commit (Only if Review Approved)
+
+**CRITICAL**: Each completed task = **ONE COMMIT** (NOT PR)
 
 Create conventional commit with strict message format:
 
@@ -1023,7 +1006,7 @@ Changes:
 - Additional context about implementation
 - Notable decisions or trade-offs
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+Generated with [Claude Code](https://claude.com/claude-code)
 Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
@@ -1036,7 +1019,7 @@ ${commit_type}(${commit_scope}): ${commit_description}
 - Additional context about implementation
 - Notable decisions or trade-offs
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+Generated with [Claude Code](https://claude.com/claude-code)
 Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
@@ -1045,55 +1028,6 @@ fi
 # Tag task completion
 git tag "task/${task_id}-committed" -f -m "Task ${task_id} committed"
 git tag "task/${task_id}-approved" -f -m "Task ${task_id} approved by reviewer"
-```
-
-**Commit Message Examples**:
-
-```bash
-# Feature implementation
-feat(TASK-1.1): implement OAuth2 Google provider
-
-- Add Google OAuth2 strategy with passport.js
-- Configure client ID/secret handling via environment
-- Implement token validation and refresh logic
-- Add comprehensive error handling for auth failures
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-Co-Authored-By: Claude <noreply@anthropic.com>
-```
-
-```bash
-# Bug fix
-fix(TASK-2.3): resolve race condition in cache invalidation
-
-- Add mutex lock for cache write operations
-- Implement retry logic for concurrent updates
-- Add test coverage for race condition scenario
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-Co-Authored-By: Claude <noreply@anthropic.com>
-```
-
-#### Step 3: Verify Git State After Commit
-
-```bash
-# Confirm clean working tree
-if [[ -n $(git status --porcelain) ]]; then
-    echo "WARNING: Uncommitted changes remain after commit"
-    git status
-fi
-
-# Verify commit created
-latest_commit=$(git log --oneline -1)
-echo "Created commit: $latest_commit"
-
-# Verify tags created
-echo "Tags created:"
-git tag -l "task/${task_id}-*"
-
-# Show commit in context
-echo "Branch status:"
-git log --oneline --graph -5
 ```
 
 **Commit Output**:
@@ -1114,7 +1048,61 @@ Status: Awaiting story review for PR creation
 
 ---
 
-### Phase 4: Final State (After All Tasks)
+### Phase 5: Parallelization Opportunities (While Tasks in Review)
+
+**CRITICAL**: While current task/group is being reviewed, can run parallel tasks if independent.
+
+**Parallelization Decision Logic**:
+
+```python
+if task_has_no_dependencies(next_task) and current_task_in_review:
+    # Can run in parallel
+    spawn_parallel_task_exec(next_task)
+
+if documentation_needed and code_stable:
+    # Run documentation agent in parallel
+    Task(prompt="Documentation Agent prompt...")
+
+if cleanup_opportunities_detected:
+    # Run cleanup agent in parallel
+    Task(prompt="Cleanup Agent prompt...")
+```
+
+**Parallel Agents Available**:
+
+1. **Documentation Agent** (if code is stable):
+   - Invoke `.claude/agents/documentation.md` via Task tool
+   - Generate/update docs for new code
+   - Can run while other tasks are in review
+
+2. **Cleanup Agent** (if refactoring identified):
+   - Invoke `.claude/agents/cleanup.md` via Task tool
+   - Remove dead code, unused imports
+   - Can run while other tasks are in review
+
+3. **Next Independent Task** (if available):
+   - Check TASKS.md for tasks with satisfied dependencies
+   - Start next task-exec in parallel
+   - Each task runs in isolated context
+
+**Example Parallel Execution**:
+
+```bash
+# Task 1.1 in review → Start Task 1.2 (independent)
+/lazy task-exec TASK-1.1
+# While reviewing, automatically start:
+/lazy task-exec TASK-1.2  # (if independent)
+
+# Or launch documentation agent in parallel:
+Task(prompt="""
+You are the Documentation Agent for LAZY-DEV-FRAMEWORK.
+Generate API documentation for newly implemented OAuth2 module.
+""")
+```
+
+---
+
+### Phase 6: Final State (After All Tasks)
 
 After all tasks complete (single task or all tasks in story), provide summary report.
 
@@ -1160,26 +1148,6 @@ Status: Awaiting story review for PR creation
 Next: /lazy story-review
 ```
 
-**Final Output (All Tasks - Sequential)**:
-
-```
-Story Execution Complete: US-3.4
-================================
-Branch: feat/US-3.4-oauth2-authentication
-Tasks Completed: 4/4
-  ✓ TASK-1.1: Setup API client
-  ✓ TASK-1.2: Build authentication
-  ✓ TASK-1.3: Add validation
-  ✓ TASK-1.4: Error handling
-
-Commits: 4
-Files Changed: 12
-Total Duration: ~176s
-
-Status: Awaiting story review for PR creation
-Next: /lazy story-review
-```
-
 **Final Output (All Tasks - Parallel)**:
 
 ```
@@ -1189,12 +1157,12 @@ Branch: feat/US-3.4-oauth2-authentication
 Execution Mode: Parallel (auto)
 
 Group 1 (parallel): 2 tasks in 52s
-  ✓ TASK-1.1: Setup API client [Agent 1 + Reviewer 1]
-  ✓ TASK-1.2: Build authentication [Agent 2 + Reviewer 2]
+  ✓ TASK-1.1: Setup API client [Coder Agent 1 + Reviewer Agent 1]
+  ✓ TASK-1.2: Build authentication [Coder Agent 2 + Reviewer Agent 2]
 
 Group 2 (parallel): 2 tasks in 41s
-  ✓ TASK-1.3: Add validation [Agent 3 + Reviewer 3]
-  ✓ TASK-1.4: Error handling [Agent 4 + Reviewer 4]
+  ✓ TASK-1.3: Add validation [Coder Agent 3 + Reviewer Agent 3]
+  ✓ TASK-1.4: Error handling [Coder Agent 4 + Reviewer Agent 4]
 
 Tasks Completed: 4/4
 Commits: 4
@@ -1205,275 +1173,6 @@ Speedup Factor: 1.88x
 
 Status: Awaiting story review for PR creation
 Next: /lazy story-review
-```
-
----
-
-## GitHub CLI Integration
-
-This command supports two modes for task/story resolution: **Directory Structure** (default) and **GitHub Issues** (with `--use-gh` flag).
-
-### Mode Comparison
-
-| Feature | Directory Mode | GitHub Mode |
-|---------|---------------|-------------|
-| **Story Source** | `./project-management/US-STORY/US-X.X-*/US-story.md` | GitHub issue (specified by `--issue N`) |
-| **Task Source** | `./project-management/US-STORY/US-X.X-*/TASKS/TASK-*.md` | Sub-issues with label `parent:N` |
-| **Task ID Format** | `TASK-1.1`, `TASK-1.2` | GitHub issue numbers: `43`, `44` |
-| **Flag Required** | `--story US-X.X` | `--issue N --use-gh` |
-| **Branch Naming** | `feat/US-3.4-oauth2-authentication` | `feat/issue-42-oauth2-authentication` |
-| **Commit References** | Task ID only | `Closes #43` GitHub reference |
-| **When to Use** | Local development workflow | Remote-first teams, existing GitHub workflows |
-
-### How Tasks Are Fetched from GitHub
-
-When `--use-gh` is enabled:
-
-1. **Story Issue**: Fetched with `gh issue view $issue_number`
-   - Title becomes branch name component
-   - Body becomes story description
-
-2. **Task Issues**: Fetched with `gh issue list --label "parent:$issue_number"`
-   - Each sub-issue represents one task
-   - Sub-issue body contains task description and acceptance criteria
-   - Sub-issue number becomes task ID
-
-3. **GitHub Issue References**: Extracted from task files
-   - Written to task file footer as `GitHub Issue: #N`
-   - Used in commit messages as `Closes #N`
-   - Automatically closes GitHub issue on merge
-
-### How Issue Numbers Are Extracted
-
-From **Directory Mode** task files:
-
-```markdown
-# TASK-1.1: Setup OAuth2 Google provider
-
-Description here...
-
-## Acceptance Criteria
-- Criteria here
-
----
-GitHub Issue: #43
-```
-
-The footer `GitHub Issue: #43` is extracted and used in commit messages.
-
-From **GitHub Mode** task files:
-
-The issue number is the task ID itself (e.g., task ID `43` → issue `#43`).
-
-### When to Use Each Mode
-
-**Use Directory Mode (default) when:**
-- Working locally before creating GitHub issues
-- Prototyping features quickly
-- Offline development
-- Team prefers file-based workflow
-
-**Use GitHub Mode (--use-gh) when:**
-- GitHub issues are already created
-- Team uses GitHub Projects for tracking
-- Need automatic issue closure on PR merge
-- Want integrated status updates
-
-### Switching Between Modes
-
-You can switch between modes at any time:
-
-```bash
-# Start with directory mode
-/lazy create-feature "Add OAuth2"  # Creates US-STORY directory
-/lazy task-exec TASK-1.1 --story US-3.4
-
-# Later, create GitHub issues from US-STORY files
-gh issue create --title "Setup OAuth2 provider" --body-file ./project-management/US-STORY/US-3.4-*/TASKS/TASK-1.1.md --label "parent:42"
-
-# Continue with GitHub mode
-/lazy task-exec 43 --use-gh  # Execute using GitHub issue #43
-```
-
-### GitHub CLI Requirements
-
-To use GitHub mode, ensure:
-
-1. **gh CLI installed**: `gh --version`
-   - Install: `brew install gh` (macOS) or https://cli.github.com/
-
-2. **Authenticated**: `gh auth status`
-   - Login: `gh auth login`
-
-3. **In git repository**: `git status`
-   - Must be in repository with GitHub remote
-
-4. **Parent labels configured**: Sub-issues must have `parent:N` label
-   - Example: `gh issue edit 43 --add-label "parent:42"`
-
----
-
-## Error Handling & Recovery
-
-### Task Resolution Errors
-
-| Error | Cause | Recovery |
-|-------|-------|----------|
-| **Story directory not found** | US-STORY directory missing | Run: `/lazy create-feature` first to create story |
-| **Task file not found** | Task doesn't exist in TASKS/ | Check available tasks with error output, use correct task ID |
-| **No task files found** | TASKS/ directory empty | Ensure `/lazy create-feature` completed successfully |
-| **Story ID required** | Missing --story or --issue flag | Add: `--story US-X.X` or `--issue N` |
-| **Invalid story identifier** | Wrong format (not US-X.X) | Use format: `US-3.4` (not `3.4` or `US3.4`) |
-| **GitHub issue not found** | Invalid issue number | Run: `gh issue list` to check issue numbers |
-| **No sub-issues found** | Missing parent:N label | Add label: `gh issue edit 43 --add-label "parent:42"` |
-| **Cannot determine parent issue** | Task missing parent label | Add parent label or use --issue flag |
-
-### Git Errors
-
-| Error | Cause | Recovery |
-|-------|-------|----------|
-| **Not a git repository** | No .git directory | Run: `git init`, configure remote, retry |
-| **Dirty working tree** | Uncommitted changes | Run: `git status`, commit/stash changes, retry |
-| **On protected branch** | Currently on main/master/develop | Command auto-creates feature branch |
-| **Branch already exists** | Previous work on story | Command checks out existing branch, continues |
-| **Detached HEAD** | Not on any branch | Run: `git checkout main`, retry |
-| **Commit failed** | Pre-commit hook failed | Fix hook issues, retry commit |
-| **Tag already exists** | Task previously attempted | Command overwrites tag with `-f` flag |
-| **Remote push rejected** | Upstream changes | Run: `git pull --rebase`, resolve conflicts, retry |
-
-### GitHub CLI Errors
-
-| Error | Cause | Recovery |
-|-------|-------|----------|
-| **gh CLI not found** | GitHub CLI not installed | Install: `brew install gh` (macOS) or https://cli.github.com/ |
-| **Not authenticated** | GitHub CLI not logged in | Run: `gh auth login` |
-| **GitHub not configured** | No GitHub remote | Add remote: `git remote add origin <url>` |
-| **Issue not found** | Invalid issue number | Check: `gh issue list` for valid issue numbers |
-| **Rate limit exceeded** | Too many API requests | Wait ~1 hour or authenticate with: `gh auth login` |
-
-### Quality Pipeline Errors
-
-| Stage | Error | Cause | Recovery |
-|-------|-------|-------|----------|
-| **Research** | Research timeout | Complex topic | Simplify keywords, retry with `--with-research` |
-| **Code Gen** | Agent failed | Invalid acceptance criteria | Fix TASKS.md, retry task-exec |
-| **Format** | Black/Ruff mismatch | Code style issues | Auto-fixed, run: `/lazy task-exec TASK-X --continue-from format` |
-| **Lint** | Ruff violations | Code quality issues | Review output, fix, retry with `--continue-from lint` |
-| **Type Check** | Mypy errors | Missing type hints | Add hints manually, retry with `--continue-from type` |
-| **Tests** | Pytest failures | Broken tests | Review failure, fix test or code, retry with `--continue-from test` |
-| **Review** | Changes requested | Doesn't meet criteria | Fix issues, re-run `task-exec` from start |
-
-### Parallel Execution Errors
-
-| Error | Cause | Recovery |
-|-------|-------|----------|
-| **Parallel Group Failure** | One task in group fails quality pipeline | Failed task is retried; other tasks in group continue; group completes when all pass |
-| **Dependency Violation** | Task depends on failed task | Block dependent group, fix failing task first, then retry dependent group |
-
----
-
-## Session Logging
-
-All task execution is logged to `logs/<session-id>/task-exec.json` for tracking and debugging.
-
-### Single Task Log
-
-```json
-{
-  "task_id": "TASK-1.1",
-  "execution_mode": "single",
-  "timestamp": "2025-10-25T14:30:00Z",
-  "stages": [
-    {"stage": "research", "status": "skipped"},
-    {"stage": "code_gen", "status": "completed", "duration": 45},
-    {"stage": "format", "status": "completed", "changes": 3},
-    {"stage": "lint", "status": "completed", "issues": 0},
-    {"stage": "type_check", "status": "completed", "errors": 0},
-    {"stage": "tests", "status": "completed", "passed": 24, "failed": 0, "coverage": 87},
-    {"stage": "review", "status": "approved"},
-    {"stage": "commit", "status": "completed", "sha": "abc123"}
-  ]
-}
-```
-
-### Parallel Execution Log
-
-```json
-{
-  "execution_mode": "parallel",
-  "timestamp": "2025-10-25T14:30:00Z",
-  "git_state": {
-    "repository": "my-project",
-    "base_branch": "main",
-    "feature_branch": "feat/US-3.4-oauth2-authentication",
-    "branch_created": true,
-    "story_tag": "story/US-3.4-start",
-    "initial_commit": "abc0000",
-    "remote_tracking": "origin/feat/US-3.4-oauth2-authentication"
-  },
-  "dependency_groups": [
-    {
-      "group_id": 1,
-      "parallel_tasks": ["TASK-1.1", "TASK-1.2"],
-      "start_time": "2025-10-25T14:30:00Z",
-      "end_time": "2025-10-25T14:31:32Z",
-      "duration": 92,
-      "tasks": [
-        {
-          "task_id": "TASK-1.1",
-          "agent_id": "coder-1",
-          "reviewer_id": "reviewer-1",
-          "stages": [
-            {"stage": "code_gen", "status": "completed", "duration": 45},
-            {"stage": "quality_pipeline", "status": "passed", "duration": 28},
-            {"stage": "review", "status": "approved", "duration": 12}
-          ],
-          "commit_sha": "abc123"
-        },
-        {
-          "task_id": "TASK-1.2",
-          "agent_id": "coder-2",
-          "reviewer_id": "reviewer-2",
-          "stages": [
-            {"stage": "code_gen", "status": "completed", "duration": 52},
-            {"stage": "quality_pipeline", "status": "passed", "duration": 31},
-            {"stage": "review", "status": "approved", "duration": 9}
-          ],
-          "commit_sha": "def456"
-        }
-      ]
-    },
-    {
-      "group_id": 2,
-      "parallel_tasks": ["TASK-1.3", "TASK-1.4"],
-      "dependencies": ["TASK-1.1", "TASK-1.2"],
-      "start_time": "2025-10-25T14:31:32Z",
-      "end_time": "2025-10-25T14:32:45Z",
-      "duration": 73,
-      "tasks": [
-        {
-          "task_id": "TASK-1.3",
-          "agent_id": "coder-3",
-          "reviewer_id": "reviewer-3",
-          "commit_sha": "ghi789"
-        },
-        {
-          "task_id": "TASK-1.4",
-          "agent_id": "coder-4",
-          "reviewer_id": "reviewer-4",
-          "commit_sha": "jkl012"
-        }
-      ]
-    }
-  ],
-  "summary": {
-    "total_tasks": 4,
-    "total_duration": 165,
-    "sequential_estimate": 310,
-    "time_saved": 145,
-    "speedup_factor": 1.88
-  }
-}
 ```
 
 ---
@@ -1490,77 +1189,118 @@ A task is considered successfully completed when:
 - ✅ Type checking passes with strict mode (Mypy)
 - ✅ Code formatting passes (Black + Ruff)
 - ✅ Linting passes with 0 violations (Ruff)
-- ✅ Code review approved by reviewer agent
-- ✅ Session log created in `logs/<session-id>/task-exec.json`
+- ✅ Code review approved by reviewer agent (invoked via Task tool)
+- ✅ Each agent explicitly invoked via Task tool (NOT automatic routing)
 
 ---
 
-## Implementation Notes
+## Agent Invocation Summary
 
-### Agent Invocation Pattern
+**CRITICAL**: All agents are invoked explicitly via Task tool with substituted context.
 
-**Single Task Mode**:
-```markdown
-# Sequential agent invocations
-1. Research Agent (if --with-research)
-2. Coder Agent (with research context)
-3. Reviewer Agent (with code + criteria)
+### Research Agent Invocation (Optional)
+
+```python
+Task(
+    prompt=f"""
+You are the Research Agent for LAZY-DEV-FRAMEWORK.
+
+## Task Context
+{task_context}
+
+## Research Goals
+{research_goals}
+
+## Output Format
+{output_format}
+"""
+)
 ```
 
-**Parallel Mode**:
-```markdown
-# Launch multiple agents in parallel using single message with multiple Task tool calls
+### Coder Agent Invocation (Required)
 
-# Example: 3 independent tasks
-Message with parallel Task tool invocations:
-  [Task 1: @agent-coder (task=TASK-1.1, context=...)]
-  [Task 2: @agent-coder (task=TASK-1.2, context=...)]
-  [Task 3: @agent-coder (task=TASK-1.3, context=...)]
+```python
+Task(
+    prompt=f"""
+You are the Coder Agent for LAZY-DEV-FRAMEWORK.
 
-# Each coder agent runs independently in parallel
-# After all complete, launch reviewers in parallel:
+## Task
+{task_content}
 
-Message with parallel Task tool invocations:
-  [Task 1: @agent-reviewer (code=TASK-1.1-impl, criteria=...)]
-  [Task 2: @agent-reviewer (code=TASK-1.2-impl, criteria=...)]
-  [Task 3: @agent-reviewer (code=TASK-1.3-impl, criteria=...)]
+## Research Context (if available)
+{research_context}
 
-# Benefits:
-# - 3 tasks complete in ~time of 1 task
-# - Each agent has minimal context (only its task)
-# - Lower total token usage vs sequential with full story context
+## Acceptance Criteria
+{acceptance_criteria}
+
+## Instructions
+{implementation_instructions}
+"""
+)
 ```
 
-### Cross-OS Compatibility
+### Reviewer Agent Invocation (Required)
 
-All bash commands must work on Windows (Git Bash), Linux, and macOS:
+```python
+Task(
+    prompt=f"""
+You are the Reviewer Agent for LAZY-DEV-FRAMEWORK.
 
-```bash
-# Good: Works on all platforms
-git status
-git branch --show-current
+## Task Being Reviewed
+{task_description}
 
-# Good: Portable path handling
-file_path="path/to/file.py"  # Use forward slashes
+## Code Changes
+{git_diff}
 
-# Avoid: Platform-specific commands
-# ls -la  # Use git commands instead for cross-platform compatibility
+## Acceptance Criteria
+{acceptance_criteria}
+
+## Review Checklist
+{review_checklist}
+
+## Output Format
+{json_output_format}
+"""
+)
 ```
 
-### Tool Scoping
+### Documentation Agent Invocation (Parallel - Optional)
 
-This command has access to:
-- ✅ **Read** - Read source files, test files, configuration
-- ✅ **Write** - Create new implementation/test files
-- ✅ **Edit** - Modify existing files
-- ✅ **Bash** - Run git commands, quality scripts, tests
-- ✅ **Task** - Invoke sub-agents (research, coder, reviewer)
-- ✅ **Glob** - Find files by pattern
-- ✅ **Grep** - Search file contents
+```python
+Task(
+    prompt=f"""
+You are the Documentation Agent for LAZY-DEV-FRAMEWORK.
 
-Blocked operations:
-- ❌ File deletion (filtered by pre_tool_use hook)
-- ❌ Destructive git operations (git reset --hard, git push --force)
+## Context
+{documentation_context}
+
+## Instructions
+{documentation_instructions}
+
+## Output Format
+{output_format}
+"""
+)
+```
+
+### Cleanup Agent Invocation (Parallel - Optional)
+
+```python
+Task(
+    prompt=f"""
+You are the Cleanup Agent for LAZY-DEV-FRAMEWORK.
+
+## Context
+{cleanup_context}
+
+## Instructions
+{cleanup_instructions}
+
+## Safe Mode
+{safe_mode_enabled}
+"""
+)
+```
 
 ---
 

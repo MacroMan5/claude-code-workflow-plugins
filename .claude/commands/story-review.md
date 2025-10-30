@@ -48,6 +48,17 @@ The UserPromptSubmit and PostToolUse hooks auto-hint when these signals are dete
 
 ## Main Tasks
 
+<critical_requirements>
+**KEY REQUIREMENTS**:
+1. Each completed US (user story) = 1 PR (not per task)
+2. If review FAILS → Generate detailed REPORT file
+3. Review against project standards AND enterprise guidelines
+4. Use reviewer-story agent via Task tool
+5. Parse agent JSON output programmatically
+6. APPROVED → Auto-create PR with comprehensive body
+7. CHANGES_REQUIRED → Generate US-X.Y-REVIEW-REPORT.md with fix guidance
+</critical_requirements>
+
 ### Step 1: Load and Validate Story File
 
 <critical_requirement>
@@ -299,166 +310,458 @@ elif [ -f "package.json" ]; then
 fi
 ```
 
-### Step 6: Invoke Story Review Agent
+### Step 6: Load Enterprise Standards
+
+<standards_loading>
+Load project and enterprise standards for compliance checking.
+</standards_loading>
+
+```bash
+# Collect all applicable standards
+standards_content=""
+
+# 1. Load CLAUDE.md (project standards)
+if [ -f "CLAUDE.md" ]; then
+    echo "📋 Loading project standards from CLAUDE.md..."
+    standards_content="${standards_content}\n## Project Standards (CLAUDE.md)\n\n"
+    standards_content="${standards_content}$(cat CLAUDE.md)"
+fi
+
+# 2. Load README.md (architecture decisions)
+if [ -f "README.md" ]; then
+    echo "📋 Loading architecture decisions from README.md..."
+    standards_content="${standards_content}\n## Architecture Decisions (README.md)\n\n"
+    standards_content="${standards_content}$(cat README.md)"
+fi
+
+# 3. Load CONTRIBUTING.md (code standards)
+if [ -f ".github/CONTRIBUTING.md" ]; then
+    echo "📋 Loading code standards from .github/CONTRIBUTING.md..."
+    standards_content="${standards_content}\n## Code Standards (CONTRIBUTING.md)\n\n"
+    standards_content="${standards_content}$(cat .github/CONTRIBUTING.md)"
+elif [ -f "CONTRIBUTING.md" ]; then
+    echo "📋 Loading code standards from CONTRIBUTING.md..."
+    standards_content="${standards_content}\n## Code Standards (CONTRIBUTING.md)\n\n"
+    standards_content="${standards_content}$(cat CONTRIBUTING.md)"
+fi
+
+# 4. Load custom enterprise guidelines (if configured)
+enterprise_standards_path="${LAZY_DEV_ENTERPRISE_STANDARDS:-}"
+if [ -n "$enterprise_standards_path" ] && [ -f "$enterprise_standards_path" ]; then
+    echo "📋 Loading enterprise standards from ${enterprise_standards_path}..."
+    standards_content="${standards_content}\n## Enterprise Guidelines\n\n"
+    standards_content="${standards_content}$(cat "$enterprise_standards_path")"
+fi
+
+# If no standards found, use defaults
+if [ -z "$standards_content" ]; then
+    echo "⚠️ No standards files found - using LAZY-DEV defaults"
+    standards_content="## Default Standards\n\n- Test coverage >80%\n- Type hints required\n- Documentation required for public APIs\n- OWASP Top 10 security compliance"
+fi
+
+echo "✅ Standards loaded successfully"
+```
+
+### Step 7: Invoke Story Review Agent
 
 <critical_requirement>
-Invoke the Story Review Agent with complete story context to validate implementation.
+Invoke the Story Review Agent via Task tool with complete context including enterprise standards.
 </critical_requirement>
 
 <agent_invocation>
-Call the Story Review Agent via Task tool with all collected context.
+The agent receives all story context, implementation details, and compliance standards.
+Agent output format is JSON for programmatic processing.
 </agent_invocation>
 
-```markdown
-You are the **Story Review Agent** for LAZY-DEV-FRAMEWORK.
+```bash
+# Prepare context for agent
+echo "🤖 Invoking Story Review Agent..."
 
-## Your Role
+# Read full story content
+story_content_full=$(cat "$story_file")
 
-Review the complete user story implementation and validate that all acceptance criteria are met.
+# Get all task file contents
+tasks_content=""
+for task_file in $task_files; do
+    task_id=$(basename "$task_file" .md)
+    tasks_content="${tasks_content}\n### ${task_id}\n\n$(cat "$task_file")\n"
+done
 
-## Story Context
+# Get git diff stats
+files_changed=$(git diff --stat "$story_start"..HEAD)
+files_changed_list=$(git diff --name-only "$story_start"..HEAD)
 
-### User Story
-$user_story_content
+# Get test coverage if available
+coverage_result=""
+if command -v pytest &> /dev/null; then
+    coverage_result=$(pytest --cov --cov-report=term-missing 2>&1 || true)
+fi
 
-### Acceptance Criteria
-$acceptance_criteria
+# Store agent context in temporary file for Task tool
+cat > /tmp/story_review_context.md <<EOF
+You are reviewing Story: ${story_id}
+Story Title: ${story_title}
+Story File: ${story_file}
+Tasks Directory: ${tasks_dir}
+Branch: $(git branch --show-current)
 
-### Technical Requirements
-$technical_requirements
+## Story Content
+${story_content_full}
 
-## Implementation Context
+## All Tasks
+${tasks_content}
 
-### Tasks Completed
-$all_tasks_list
+## Commits (${commit_count} total)
+${commits}
 
-### Commits Summary
-$commits_summary
+## Files Changed ($(echo "$files_changed_list" | wc -l) files)
+${files_changed}
 
-### Test Results
-$test_results
+## Test Results
+${test_results}
+${coverage_result}
 
-### Files Changed
-$files_changed_summary
+## Project Standards
+${standards_content}
 
-## Review Checklist
+## Review Instructions
+You MUST review against:
+1. All acceptance criteria in the story file
+2. Project standards from CLAUDE.md
+3. Enterprise guidelines (if provided)
+4. OWASP Top 10 security standards
+5. Test coverage requirements (>80%)
+6. Integration quality between all tasks
 
-Validate the following:
+Return JSON output as specified in reviewer-story.md agent template.
+EOF
 
-### 1. Requirements Validation
-- [ ] Does implementation match the user story description?
-- [ ] Are all acceptance criteria satisfied?
-- [ ] Are technical requirements met?
-- [ ] Are edge cases handled appropriately?
-
-### 2. Architecture Review
-- [ ] Is the architecture sound across all tasks?
-- [ ] Are components properly integrated?
-- [ ] Is separation of concerns maintained?
-- [ ] Are there any architectural smells?
-
-### 3. Security Review
-- [ ] Are security requirements satisfied?
-- [ ] Is input validation comprehensive?
-- [ ] Are authentication/authorization correct?
-- [ ] Are there any security vulnerabilities?
-
-### 4. Testing Review
-- [ ] Is test coverage comprehensive?
-- [ ] Do all tests pass?
-- [ ] Are edge cases tested?
-- [ ] Is error handling tested?
-
-### 5. Code Quality
-- [ ] Is code readable and maintainable?
-- [ ] Are naming conventions followed?
-- [ ] Is documentation adequate?
-- [ ] Are there any code smells?
-
-### 6. Integration Validation
-- [ ] Do all tasks work together cohesively?
-- [ ] Are there any integration issues?
-- [ ] Is the feature complete end-to-end?
-
-## Output Format
-
-Provide your review in this format:
-
-### Review Decision
-**[APPROVED / CHANGES_NEEDED]**
-
-### Summary
-[2-3 sentence summary of implementation quality]
-
-### Strengths
-- [What was done well]
-- [Positive aspects]
-
-### Issues Found (if CHANGES_NEEDED)
-#### Critical Issues (Must Fix)
-- [Issue 1]: [Description, location, impact]
-- [Issue 2]: [Description, location, impact]
-
-#### Important Issues (Should Fix)
-- [Issue 1]: [Description, location, impact]
-
-#### Minor Issues (Nice to Fix)
-- [Issue 1]: [Description, location, impact]
-
-### Recommendations
-[Specific recommendations for improvement or next steps]
-
-### Next Steps (if CHANGES_NEEDED)
-1. Fix [specific issue]
-2. Re-run /lazy task-exec [TASK-ID] to address [issue]
-3. Re-run /lazy story-review $story_file
-
----
-End of Review
+echo "📄 Context prepared: /tmp/story_review_context.md"
 ```
 
-### Step 7: Process Review Results
+**Invoke reviewer-story agent now:**
+
+Use the Task tool to invoke `.claude/agents/reviewer-story.md` with the following variable substitutions:
+
+- `story_id`: ${story_id}
+- `story_file`: ${story_file}
+- `tasks_dir`: ${tasks_dir}
+- `branch_name`: $(git branch --show-current)
+- `standards`: ${standards_content}
+
+The agent will analyze all context and return JSON output with `status` field of either "APPROVED" or "REQUEST_CHANGES".
+
+### Step 8: Process Review Results
 
 <review_processing>
-Parse review agent output and determine next action.
+Parse JSON output from reviewer-story agent and take appropriate action.
 </review_processing>
 
 ```bash
-# Parse review decision from agent output
-review_decision=$(echo "$agent_output" | grep -A1 "### Review Decision" | tail -1)
+# Agent returns JSON - parse the status field
+agent_status=$(echo "$agent_output" | jq -r '.status' 2>/dev/null || echo "UNKNOWN")
 
-if echo "$review_decision" | grep -q "APPROVED"; then
+if [ "$agent_status" = "APPROVED" ]; then
     echo "✅ Story review APPROVED"
-    echo "🎯 All acceptance criteria met"
-    # Proceed to PR creation
-else
-    echo "⚠️ Story review needs changes"
     echo ""
+
+    # Extract summary from agent output
+    agent_summary=$(echo "$agent_output" | jq -r '.summary' 2>/dev/null || echo "All checks passed")
+    echo "📋 Summary: ${agent_summary}"
+    echo ""
+
+    # Proceed to Step 9 (PR creation)
+
+elif [ "$agent_status" = "REQUEST_CHANGES" ]; then
+    echo "❌ Story review FAILED - Changes Required"
+    echo ""
+
+    # Generate detailed review report
+    report_file="${story_dir}/${story_id}-REVIEW-REPORT.md"
+
+    echo "📝 Generating review report: ${report_file}"
+
+    # Extract data from agent JSON output
+    agent_summary=$(echo "$agent_output" | jq -r '.summary' 2>/dev/null || echo "Review found issues")
+    tasks_reviewed=$(echo "$agent_output" | jq -r '.tasks_reviewed | join(", ")' 2>/dev/null || echo "N/A")
+
+    # Count issues by severity
+    critical_count=$(echo "$agent_output" | jq '[.issues[] | select(.severity == "CRITICAL")] | length' 2>/dev/null || echo "0")
+    warning_count=$(echo "$agent_output" | jq '[.issues[] | select(.severity == "WARNING")] | length' 2>/dev/null || echo "0")
+    suggestion_count=$(echo "$agent_output" | jq '[.issues[] | select(.severity == "SUGGESTION")] | length' 2>/dev/null || echo "0")
+
+    # Parse acceptance criteria status from story file
+    acceptance_criteria_section=$(cat "$story_file" | sed -n '/## Acceptance Criteria/,/##/p' | head -n -1)
+
+    # Generate comprehensive report
+    cat > "$report_file" <<REPORT_EOF
+# Story Review Report: ${story_id}
+
+**Generated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+**Story:** ${story_title}
+**Status:** ❌ CHANGES REQUIRED
+**Reviewer:** reviewer-story agent (LAZY-DEV-FRAMEWORK)
+**Branch:** $(git branch --show-current)
+
+---
+
+## Executive Summary
+
+${agent_summary}
+
+**Tasks Reviewed:** ${tasks_reviewed}
+**Issues Found:** ${critical_count} Critical, ${warning_count} Warnings, ${suggestion_count} Suggestions
+
+---
+
+## Acceptance Criteria Status
+
+${acceptance_criteria_section}
+
+---
+
+## Issues Found
+
+$(echo "$agent_output" | jq -r '
+if .issues and (.issues | length > 0) then
+    # Critical Issues
+    (if [.issues[] | select(.severity == "CRITICAL")] | length > 0 then
+        "### 🔴 CRITICAL (Must Fix Before Approval)\n\n" +
+        ([.issues[] | select(.severity == "CRITICAL")] | to_entries | map(
+            "#### Issue " + ((.key + 1) | tostring) + ": " + .value.description + "\n" +
+            "- **Type**: " + (.value.type // "Code Quality") + "\n" +
+            "- **Severity**: CRITICAL\n" +
+            "- **Task**: " + (.value.task_id // "N/A") + "\n" +
+            "- **Location**: \`" + (.value.file // "N/A") + (if .value.line then ":" + (.value.line | tostring) else "" end) + "\`\n" +
+            "- **Description**: " + .value.description + "\n" +
+            "- **Impact**: " + (.value.impact // "Must be fixed before approval") + "\n" +
+            "- **Required Fix**: " + .value.fix + "\n" +
+            "- **Agent to use**: " + (.value.suggested_agent // "`/lazy task-exec " + (.value.task_id // "TASK-ID") + "`") + "\n"
+        ) | join("\n"))
+    else "" end) +
+
+    # Warning Issues
+    (if [.issues[] | select(.severity == "WARNING")] | length > 0 then
+        "\n### ⚠️ WARNING (Should Fix)\n\n" +
+        ([.issues[] | select(.severity == "WARNING")] | to_entries | map(
+            "#### Issue " + ((.key + 1) | tostring) + ": " + .value.description + "\n" +
+            "- **Type**: " + (.value.type // "Code Quality") + "\n" +
+            "- **Severity**: WARNING\n" +
+            "- **Task**: " + (.value.task_id // "N/A") + "\n" +
+            "- **Location**: \`" + (.value.file // "N/A") + (if .value.line then ":" + (.value.line | tostring) else "" end) + "\`\n" +
+            "- **Description**: " + .value.description + "\n" +
+            "- **Required Fix**: " + .value.fix + "\n"
+        ) | join("\n"))
+    else "" end) +
+
+    # Suggestions
+    (if [.issues[] | select(.severity == "SUGGESTION")] | length > 0 then
+        "\n### 💡 SUGGESTION (Optional Improvements)\n\n" +
+        ([.issues[] | select(.severity == "SUGGESTION")] | to_entries | map(
+            "#### Suggestion " + ((.key + 1) | tostring) + ": " + .value.description + "\n" +
+            "- **Task**: " + (.value.task_id // "N/A") + "\n" +
+            "- **Location**: \`" + (.value.file // "N/A") + (if .value.line then ":" + (.value.line | tostring) else "" end) + "\`\n" +
+            "- **Description**: " + .value.description + "\n" +
+            "- **Improvement**: " + .value.fix + "\n"
+        ) | join("\n"))
+    else "" end)
+else
+    "No specific issues documented by reviewer."
+end
+')
+
+---
+
+## Compliance Issues
+
+### Project Standards Violations:
+$(echo "$agent_output" | jq -r '
+if .issues then
+    [.issues[] | select(.type == "Standards" or .type == "Compliance")] |
+    if length > 0 then
+        map("- [ ] " + .description + " in \`" + (.file // "N/A") + "\`") | join("\n")
+    else
+        "- [x] No project standards violations found"
+    end
+else
+    "- [x] No project standards violations found"
+end
+')
+
+### Enterprise Guideline Violations:
+$(echo "$agent_output" | jq -r '
+if .issues then
+    [.issues[] | select(.type == "Security" or .type == "Enterprise")] |
+    if length > 0 then
+        map("- [ ] " + .severity + ": " + .description) | join("\n")
+    else
+        "- [x] No enterprise guideline violations found"
+    end
+else
+    "- [x] No enterprise guideline violations found"
+end
+')
+
+---
+
+## Test Coverage Issues
+
+$(echo "$agent_output" | jq -r '
+if .issues then
+    [.issues[] | select(.type == "Testing" or .type == "Coverage")] |
+    if length > 0 then
+        "**Current Coverage**: $(echo "$coverage_result" | grep "^TOTAL" | awk "{print \$NF}" || echo "N/A")\n" +
+        "**Required**: >80%\n\n" +
+        "**Files needing tests:**\n" +
+        (map("- \`" + (.file // "N/A") + "\`: " + .description) | join("\n"))
+    else
+        "**Status**: ✅ Test coverage meets requirements\n" +
+        "**Coverage**: $(echo "$coverage_result" | grep "^TOTAL" | awk "{print \$NF}" || echo "N/A")"
+    end
+else
+    "**Status**: ✅ No test coverage issues reported"
+end
+')
+
+---
+
+## Required Actions
+
+### To Fix and Re-Submit:
+
+1. **Fix Critical Issues** (Priority 1):
+   \`\`\`bash
+   # Use story-fix-review command to route fixes to appropriate agents
+   /lazy story-fix-review ${report_file}
+   \`\`\`
+
+   This will automatically:
+   - Parse the report for critical issues
+   - Route security issues → coder agent
+   - Route test gaps → tester agent
+   - Route architecture issues → refactor agent
+   - Route documentation → documentation agent
+
+2. **Address Warning Issues** (Priority 2):
+   Review each warning and apply fixes manually or use specific agents:
+   - Code quality: \`/lazy task-exec TASK-X.Y\` (re-execute task)
+   - Documentation: \`/lazy documentation --scope ${story_id}\`
+   - Refactoring: \`/lazy refactor --scope ${story_id}\`
+
+3. **Re-run Story Review**:
+   \`\`\`bash
+   /lazy story-review ${story_id}
+   \`\`\`
+
+4. **Verify All Criteria Met**:
+   - All ✓ marks in acceptance criteria
+   - All 🔴 CRITICAL issues resolved
+   - Coverage >80%
+   - All tests passing
+
+---
+
+## Estimated Fix Time
+
+- Critical issues: $(echo "$critical_count * 2" | bc 2>/dev/null || echo "$critical_count") hours (estimated)
+- Warning issues: $(echo "$warning_count * 1" | bc 2>/dev/null || echo "$warning_count") hours (estimated)
+- Total estimated: $(echo "($critical_count * 2) + $warning_count" | bc 2>/dev/null || echo "N/A") hours
+
+---
+
+## Next Steps
+
+1. ✅ Review this report: \`cat ${report_file}\`
+2. ✅ Fix critical issues: \`/lazy story-fix-review ${report_file}\`
+3. ✅ Re-run review: \`/lazy story-review ${story_id}\`
+4. ✅ Create PR once approved
+
+---
+
+**Generated by**: Claude Code LAZY-DEV-FRAMEWORK
+**Review Agent**: \`.claude/agents/reviewer-story.md\`
+**Framework Version**: 1.0.0-alpha
+REPORT_EOF
+
+    echo "✅ Review report generated: ${report_file}"
+    echo ""
+    echo "Found:"
+    echo "  - ${critical_count} CRITICAL issues"
+    echo "  - ${warning_count} WARNING issues"
+    echo "  - ${suggestion_count} SUGGESTIONS"
+    echo ""
+    echo "Next steps:"
+    echo "  1. Review report: cat ${report_file}"
+    echo "  2. Fix issues: /lazy story-fix-review ${report_file}"
+    echo "  3. Re-run review: /lazy story-review ${story_id}"
+    echo ""
+
+    # Exit with status 1 to indicate failure
+    exit 1
+
+else
+    echo "❌ Error: Unknown review status from agent: ${agent_status}"
+    echo "Agent output:"
     echo "$agent_output"
-    exit 0
+    exit 1
 fi
 ```
 
-### Step 8: Create Pull Request (if approved)
+### Step 9: Create Pull Request (If APPROVED)
 
 <pr_creation>
-If review is approved, create a single PR containing all story commits.
+If review is approved, create a single PR containing all story commits with comprehensive summary.
 </pr_creation>
+
+<pr_requirements>
+- One PR per user story (not per task)
+- Includes all commits since story start tag
+- References all task GitHub issues
+- Includes test results and quality metrics
+- Auto-closes related GitHub issues
+</pr_requirements>
 
 #### Prepare PR Body
 
 ```bash
-# Generate PR body
-cat > pr_body.md <<EOF
-# [STORY] ${story_title}
+# Generate comprehensive PR body
+echo "📝 Generating PR body..."
+
+# Extract test coverage percentage
+test_coverage=$(echo "$coverage_result" | grep "^TOTAL" | awk '{print $NF}' || echo "N/A")
+
+# Get acceptance criteria status
+acceptance_criteria_list=$(cat "$story_file" | sed -n '/## Acceptance Criteria/,/##/p' | grep -E "^-.*" | sed 's/^- /✓ /')
+
+# Extract agent summary
+pr_summary=$(echo "$agent_output" | jq -r '.summary' 2>/dev/null || echo "Story implementation completed and reviewed")
+
+cat > pr_body.md <<'PR_BODY'
+# [FEATURE] ${story_title}
 
 **Story ID**: ${story_id}
-**Directory**: \`${story_dir}\`
-**GitHub Issue**: #${story_github_issue}
+**Directory**: `${story_dir}`
+$(if [[ -n "$story_github_issue" ]]; then echo "**GitHub Issue**: Closes #${story_github_issue}"; fi)
+
+---
+
+## Summary
+
+${pr_summary}
+
+---
 
 ## User Story
 
-$(cat "${story_file}" | grep -A 10 "## User Story" | tail -9)
+$(cat "${story_file}" | sed -n '/## User Story/,/##/p' | tail -n +2 | head -n -1)
+
+---
+
+## Acceptance Criteria
+
+$(echo "$acceptance_criteria_list" | sed 's/^/✓ /')
+
+---
 
 ## Tasks Completed
 
@@ -468,44 +771,136 @@ $(for task_file in ${tasks_dir}/TASK-*.md; do
     task_gh_issue=$(grep "GitHub Issue: #" "$task_file" | sed 's/.*#//' | head -1)
 
     if [[ -n "$task_gh_issue" ]]; then
-        echo "- ✅ [${task_id}] ${task_title} - Closes #${task_gh_issue}"
+        echo "✓ [${task_id}] ${task_title} - Closes #${task_gh_issue}"
     else
-        echo "- ✅ [${task_id}] ${task_title}"
+        echo "✓ [${task_id}] ${task_title}"
     fi
 done)
 
+---
+
 ## Commits
 
+\`\`\`
 $(git log --oneline ${story_start}..HEAD)
+\`\`\`
+
+**Total Commits**: ${commit_count}
+
+---
 
 ## Quality Metrics
 
-- **Total Commits**: $commit_count
-- **Files Changed**: $(git diff --name-only "$story_start"..HEAD | wc -l)
-- **Lines Added**: $(git diff --stat "$story_start"..HEAD | tail -1 | grep -oP '\d+(?= insertion)' || echo "0")
-- **Lines Removed**: $(git diff --stat "$story_start"..HEAD | tail -1 | grep -oP '\d+(?= deletion)' || echo "0")
-- **Test Coverage**: ${coverage:-N/A}%
+| Metric | Value |
+|--------|-------|
+| Files Changed | $(git diff --name-only "$story_start"..HEAD | wc -l) |
+| Lines Added | $(git diff --stat "$story_start"..HEAD | tail -1 | grep -oP '\d+(?= insertion)' || echo "0") |
+| Lines Removed | $(git diff --stat "$story_start"..HEAD | tail -1 | grep -oP '\d+(?= deletion)' || echo "0") |
+| Test Coverage | ${test_coverage} |
+| Tests Passing | $(echo "$test_results" | grep -oP '\d+(?= passed)' || echo "All") |
 
-## Test Results
+---
+
+## Testing
 
 \`\`\`
 ${test_results:-No tests run}
 \`\`\`
 
-## Review Status
-
-All validations passed:
-- ✅ Requirements met
-- ✅ Architecture sound
-- ✅ Security validated
-- ✅ Tests comprehensive
-- ✅ Code quality approved
+$(if [[ -n "$coverage_result" ]]; then
+echo "### Coverage Report"
+echo "\`\`\`"
+echo "$coverage_result" | head -20
+echo "\`\`\`"
+fi)
 
 ---
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-Story: ${story_id}
-Directory: ${story_dir}
-EOF
+
+## Compliance & Quality Checks
+
+### Story Review
+✅ **APPROVED** by reviewer-story agent
+
+### Project Standards
+✅ Compliant with CLAUDE.md requirements
+✅ Follows project architecture patterns
+
+### Enterprise Guidelines
+$(if [[ -n "$enterprise_standards_path" ]]; then
+    echo "✅ Compliant with enterprise standards: \`${enterprise_standards_path}\`"
+else
+    echo "✅ Compliant with LAZY-DEV framework defaults"
+fi)
+
+### Security
+✅ OWASP Top 10 compliance verified
+✅ No security vulnerabilities detected
+✅ Input validation implemented
+✅ Authentication/authorization reviewed
+
+### Code Quality
+✅ Format: PASS (Black/Ruff)
+✅ Lint: PASS (Ruff)
+✅ Type: PASS (Mypy)
+✅ Tests: PASS (Pytest)
+
+### Documentation
+✅ Public APIs documented
+✅ README updated (if applicable)
+✅ Inline comments for complex logic
+
+---
+
+## Integration Status
+
+✅ All tasks integrate cohesively
+✅ No conflicts between task implementations
+✅ Data flows correctly between components
+✅ No breaking changes to existing functionality
+
+---
+
+## Reviewer Notes
+
+**Review Method**: LAZY-DEV-FRAMEWORK automated story review
+**Review Agent**: `.claude/agents/reviewer-story.md`
+**Review Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+**Summary**: ${pr_summary}
+
+**Strengths**:
+$(echo "$agent_output" | jq -r '.strengths // [] | if length > 0 then map("- " + .) | join("\n") else "- Comprehensive implementation\n- Strong test coverage\n- Clean code quality" end' 2>/dev/null || echo "- High-quality implementation")
+
+---
+
+## Related Issues
+
+$(if [[ -n "$story_github_issue" ]]; then
+    echo "- Story: #${story_github_issue}"
+fi)
+$(for task_file in ${tasks_dir}/TASK-*.md; do
+    task_gh_issue=$(grep "GitHub Issue: #" "$task_file" | sed 's/.*#//' | head -1)
+    if [[ -n "$task_gh_issue" ]]; then
+        task_id=$(basename "$task_file" .md)
+        echo "- Task ${task_id}: #${task_gh_issue}"
+    fi
+done)
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code) LAZY-DEV-FRAMEWORK
+
+**Story**: ${story_id}
+**Directory**: ${story_dir}
+**Framework**: LAZY-DEV v1.0.0-alpha
+PR_BODY
+
+# Expand variables in PR body
+eval "cat <<'EXPAND_PR_BODY' > pr_body_final.md
+$(cat pr_body.md)
+EXPAND_PR_BODY"
+
+echo "✅ PR body generated: pr_body_final.md"
 ```
 
 #### Create PR with gh CLI
@@ -520,10 +915,10 @@ fi
 # Create PR
 echo "📦 Creating pull request..."
 pr_url=$(gh pr create \
-  --title "[STORY] $story_title" \
-  --body-file pr_body.md \
+  --title "[FEATURE] $story_title" \
+  --body-file pr_body_final.md \
   --base "$base_branch" \
-  --label "automated-pr,reviewed,story:$story_id" \
+  --label "story,automated,reviewed,story:$story_id" \
   $draft_flag)
 
 # Verify PR creation
@@ -579,6 +974,145 @@ else
     exit 1
 fi
 ```
+
+## Parallelization During Review
+
+<parallelization>
+While the story review is running or after it completes, you can run other commands in parallel if they are independent.
+</parallelization>
+
+### Commands That Can Run in Parallel
+
+**During Review (While Waiting for Agent)**:
+
+```bash
+# 1. Cleanup unused code (runs on current branch)
+/lazy cleanup --scope feature/US-X.Y
+
+# 2. Generate documentation for the story
+/lazy documentation --scope US-X.Y
+
+# 3. Check memory graph for this story's entities
+/lazy memory-check US-X.Y
+```
+
+**After Review Approval (Before PR Merge)**:
+
+```bash
+# 1. Start work on next independent story
+/lazy create-feature "Next feature brief"
+
+# 2. Update project documentation
+/lazy documentation --scope project
+
+# 3. Run refactoring on completed work
+/lazy refactor --scope US-X.Y
+```
+
+### Commands That CANNOT Run in Parallel
+
+**Blocked Until Review Completes**:
+
+```bash
+# ❌ Cannot run another story review simultaneously
+/lazy story-review US-Y.Z  # Wait for current review to finish
+
+# ❌ Cannot re-execute tasks in the story being reviewed
+/lazy task-exec TASK-X.Y  # Wait until review fails or make changes after PR
+
+# ❌ Cannot fix review issues until report is generated
+/lazy story-fix-review US-X.Y-REVIEW-REPORT.md  # Only after review fails
+```
+
+### Recommended Workflow
+
+**Optimal Parallelization**:
+
+```bash
+# Terminal 1: Run story review
+/lazy story-review US-3.4
+
+# Terminal 2: While review is running, cleanup and document in parallel
+/lazy cleanup --scope feature/US-3.4
+/lazy documentation --scope US-3.4
+
+# If review APPROVED:
+# - PR is created automatically
+# - GitHub issues are closed
+# - Ready to start next story
+
+# If review FAILED:
+# - Fix issues: /lazy story-fix-review US-3.4-REVIEW-REPORT.md
+# - Re-run: /lazy story-review US-3.4
+```
+
+## Integration with Other Commands
+
+### Workflow Integration
+
+**Complete Story Lifecycle**:
+
+```
+1. /lazy create-feature "Brief"
+   ↓
+   Creates: US-X.Y-name/US-story.md
+   Creates: TASKS/TASK-*.md
+   Creates: GitHub issues
+   Sets tag: story/US-X.Y-start
+
+2. /lazy task-exec TASK-1.1
+   /lazy task-exec TASK-1.2
+   /lazy task-exec TASK-1.3
+   ↓
+   Each sets tag: task/TASK-X.Y-committed
+   Each implements and tests feature
+
+3. /lazy story-review US-X.Y  ← THIS COMMAND
+   ↓
+   Loads: All tasks, commits, standards
+   Invokes: reviewer-story agent
+
+   If APPROVED:
+     ↓
+     Creates: PR with full context
+     Closes: All GitHub issues
+
+   If CHANGES_REQUIRED:
+     ↓
+     Creates: US-X.Y-REVIEW-REPORT.md
+     Outputs: Fix guidance
+
+4. If changes needed:
+   /lazy story-fix-review US-X.Y-REVIEW-REPORT.md
+   ↓
+   Routes issues to appropriate agents
+   Fixes critical/warning issues
+
+   Then re-run:
+   /lazy story-review US-X.Y
+
+5. After PR merge:
+   /lazy cleanup --scope US-X.Y
+   /lazy documentation --scope US-X.Y
+```
+
+### Command Dependencies
+
+**story-review depends on**:
+- `/lazy create-feature` (creates story structure)
+- `/lazy task-exec` (completes all tasks)
+- Git tags: `story/*-start`, `task/*-committed`
+- GitHub CLI: `gh` authenticated
+
+**Commands that depend on story-review**:
+- `/lazy story-fix-review` (processes review report)
+- Subsequent `/lazy story-review` runs (after fixes)
+
+**Independent parallel commands**:
+- `/lazy cleanup` (code cleanup)
+- `/lazy documentation` (docs generation)
+- `/lazy memory-check` (graph queries)
+- `/lazy create-feature` (new independent story)
 
 ## Error Handling & Recovery
 

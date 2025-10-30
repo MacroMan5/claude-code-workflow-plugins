@@ -137,106 +137,23 @@ echo "   Report: $(basename $report_file)"
 echo ""
 ```
 
-### 2. Issue Analysis and Automatic Agent Routing
+### 2. Issue Analysis and Automatic Agent Selection
 
-<thinking>
-Instead of manually mapping issue types to agents, use the agent registry for automatic routing.
-This centralizes agent selection logic and makes it easy to modify routing without changing command code.
-</thinking>
+**Agent Selection Logic:**
 
-<agent_registry>
+Based on issue category extracted from the review report, the appropriate agent is automatically selected:
 
-**Agent Registry Location**: `.claude/core/agent_registry.json`
+- **Security, Code Issue, Bug Fix** → Coder Agent (`.claude/agents/coder.md`)
+- **Test Gap, Missing Tests** → Tester Agent (`.claude/agents/tester.md`)
+- **Architecture, Design Pattern** → Refactor Agent (`.claude/agents/refactor.md`)
+- **Documentation, Docstrings** → Documentation Agent (`.claude/agents/documentation.md`)
+- **Performance, Optimization** → Coder Agent (`.claude/agents/coder.md`)
 
-The registry contains:
-- Agent definitions with capabilities and models
-- Issue type mappings to agents
-- Default routing behavior
-- Specialization areas for each agent
-
-**Routing Logic:**
-
-1. **Load agent registry**: Read `.claude/core/agent_registry.json`
-
-2. **Parse issue category**: Extract category from report issue (security, code_issue, test_gap, architecture, documentation, etc.)
-
-3. **Normalize category**: Convert to lowercase with underscores
-   - "Code Issue" → "code_issue"
-   - "Test Gap" → "test_gap"
-   - "Security" → "security"
-   - "Missing Docstring" → "missing_docstring"
-
-4. **Map to agent**: Look up category in `issue_type_mappings`
-   ```json
-   {
-     "security": "coder",
-     "code_issue": "coder",
-     "test_gap": "tester",
-     "architecture": "refactor",
-     "documentation": "documentation"
-   }
-   ```
-
-5. **Get agent details**: Retrieve agent configuration from `agents` section
-   ```json
-   {
-     "coder": {
-       "name": "coder",
-       "file": ".claude/agents/coder.md",
-       "model": "sonnet",
-       "tools": ["Read", "Write", "Edit", "Bash", "Grep", "Glob"],
-       "capabilities": [
-         "implementation",
-         "code-writing",
-         "bug-fixing",
-         "security-implementation"
-       ],
-       "description": "Implementation specialist for all coding tasks"
-     }
-   }
-   ```
-
-6. **Load agent template**: Read agent file from `file_path`
-
-7. **Provide context in conversation**: Agent extracts context from conversation history
-   - Issue description
-   - Severity level
-   - Affected files
-   - Task ID
-   - Story context
-
-**Benefits of Automatic Routing:**
-- No manual if/else logic in command
-- Add new issue types by updating registry only
+**Agent Selection Benefits:**
+- Simple category-to-agent mapping
 - Consistent agent invocation pattern
-- Easy to change agent assignments
-- Centralized routing configuration
-- Can override agent selection if needed
-
-**Example Routing Flow:**
-
-```bash
-# Issue from report: "Security: SQL injection in auth.py"
-category="security"
-
-# Load registry
-registry=$(cat .claude/core/agent_registry.json)
-
-# Map to agent
-agent_name=$(echo "$registry" | jq -r ".issue_type_mappings.security")
-# Result: "coder"
-
-# Get agent config
-agent_config=$(echo "$registry" | jq -r ".agents.coder")
-agent_file=$(echo "$agent_config" | jq -r ".file")
-agent_model=$(echo "$agent_config" | jq -r ".model")
-
-# Result:
-# agent_file = ".claude/agents/coder.md"
-# agent_model = "sonnet"
-```
-
-</agent_registry>
+- Easy to update agent assignments
+- Each issue type routed to specialized agent
 
 ### 3. Systematic Issue Resolution
 

@@ -1,7 +1,7 @@
 ---
 description: Create user story and tasks from feature brief
-argument-hint: "[feature-description] [--role pm|techlead] [--output-dir DIR]"
-allowed-tools: Read, Write, Task, Bash
+argument-hint: "[feature-description] [--file FILE] [--role pm|techlead] [--output-dir DIR]"
+allowed-tools: Read, Write, Task, Bash, Grep, Glob
 model: claude-haiku-4-5-20251001
 ---
 
@@ -9,7 +9,12 @@ model: claude-haiku-4-5-20251001
 
 ## Introduction
 
-Transform a brief feature description into a complete user story with individual task files in a structured directory. This command receives enriched input from the pre-prompt-enrichment hook, which adds architecture, security, testing, and edge case considerations automatically.
+Transform a brief feature description into a complete user story with individual task files in a structured directory.
+
+**Input Sources:**
+1. **From STT Prompt Enhancer** (recommended): Enhanced, structured feature description from the STT_PROMPT_ENHANCER project
+2. **Direct Input**: Brief text provided directly to command
+3. **Pre-Prompt Enrichment Hook**: Automatically adds architecture, security, testing, and edge case considerations
 
 **Output Structure:**
 ```
@@ -30,6 +35,22 @@ When a feature introduces new entities (teams, services, APIs) or durable facts 
 - Search first, then create entities and add observations; link related entities.
 See `.claude/skills/memory-graph/` for playbooks. The UserPromptSubmit hook auto-hints this when signals are detected.
 
+## Usage Examples
+
+```bash
+# From direct input
+/lazy create-feature "Add user authentication with OAuth2"
+
+# From STT enhanced file
+/lazy create-feature --file enhanced_prompt.md
+
+# With specific role
+/lazy create-feature "Build payment processing" --role techlead
+
+# With custom output directory
+/lazy create-feature "Add analytics dashboard" --output-dir ./docs/project-management/US-STORY
+```
+
 ## Feature Description
 
 <feature_description>
@@ -38,17 +59,63 @@ $ARGUMENTS
 
 ## Main Tasks
 
-### 1. Parse Arguments and Validate Context
+### Step 1: Load Feature Brief
 
 <thinking>
-First, I need to understand what the user wants to build and extract any optional parameters. The brief has already been enriched by the pre-prompt hook, so I should have comprehensive context.
+First, I need to load the feature brief from either the STT enhanced file, direct input, or the arguments. The brief may have already been enriched by the pre-prompt hook.
 </thinking>
 
-**Parse Input:**
-- [ ] Extract feature brief from `$ARGUMENTS`
+**Input Sources:**
+1. **From STT Prompt Enhancer** (recommended):
+   - Check if `--file` argument is provided
+   - If yes, read enhanced prompt from file path
+   - Contains: Enhanced, structured feature description
+   - Location: Provided as argument or check default STT_PROMPT_ENHANCER output location
+
+2. **Direct Input**:
+   - Extract feature brief from `$ARGUMENTS` if no `--file` flag
+   - Brief text provided directly to command
+
+**Parse Arguments:**
+- [ ] Check for `--file` flag and read enhanced prompt file if provided
+- [ ] If no `--file`, extract feature brief from `$ARGUMENTS`
 - [ ] Parse optional `--role` flag (pm|techlead) - defaults to "pm"
 - [ ] Parse optional `--output-dir` flag - defaults to `./project-management/US-STORY/US-{ID}-{name}/`
-- [ ] Verify the enriched brief contains architecture/security/testing context
+- [ ] Verify the brief is not empty
+
+**Error Handling:**
+- If `--file` provided but file not found: Return error "Enhanced prompt file not found at: {path}"
+- If no input provided: Return error "No feature brief provided. Use --file or provide description."
+- If brief is empty: Return error "Feature brief is empty. Provide a valid description."
+
+### Step 2: Pre-Prompt Enrichment
+
+<thinking>
+The pre-prompt enrichment hook should fire automatically via the user_prompt_submit hook. However, I should verify the enrichment has been applied and the brief contains the necessary context.
+</thinking>
+
+**Hook fires automatically** (user_prompt_submit):
+- Adds architecture patterns relevant to the project
+- Adds security requirements (OWASP considerations)
+- Adds testing strategy (unit, integration, edge cases)
+- Adds edge cases to consider
+- Uses Claude Haiku for cost efficiency
+
+**Verify Enrichment:**
+- [ ] Check if brief contains security considerations
+- [ ] Check if brief contains testing requirements
+- [ ] Check if brief mentions architecture patterns
+- [ ] If enrichment missing: Warn "Pre-prompt enrichment may not have fired. Check ANTHROPIC_API_KEY."
+
+**Error Handling:**
+- If enrichment failed (missing ANTHROPIC_API_KEY): Warn but continue "Pre-prompt enrichment failed. Story may lack security/testing context."
+- Agent can still proceed with non-enriched brief (but quality may be lower)
+
+### Step 3: Parse Arguments and Validate Context
+
+<thinking>
+Now I need to parse any remaining arguments and validate the environment is ready for story creation.
+</thinking>
 
 **Generate Story ID:**
 - [ ] Scan `./project-management/US-STORY/` directory for existing US-* folders
@@ -72,13 +139,12 @@ First, I need to understand what the user wants to build and extract any optiona
 - [ ] Check if `gh` is authenticated: `gh auth status`
 
 **Error Handling:**
-- If enrichment failed (missing ANTHROPIC_API_KEY): Return error "Pre-prompt enrichment failed. Check ANTHROPIC_API_KEY in environment."
 - If git not initialized: Warn "Not in git repository. Consider running `git init` for better tracking."
 - If gh not installed: Return error "GitHub CLI not installed. Install with: brew install gh (or download from https://cli.github.com)"
 - If gh not authenticated: Return error "GitHub CLI not authenticated. Run: gh auth login"
 - If directory creation fails: Return error "Could not create directory structure. Check permissions."
 
-### 2. Load Project Context
+### Step 4: Load Project Context
 
 <thinking>
 To create relevant user stories and tasks, I need to understand the project's architecture, conventions, and existing patterns. This helps the PM agent generate context-aware deliverables.
@@ -100,67 +166,123 @@ To create relevant user stories and tasks, I need to understand the project's ar
 - [ ] Performance requirements
 - [ ] Deployment constraints
 
-### 3. Invoke Project Manager Agent
+### Step 5: Invoke Project Manager Agent
 
 <thinking>
-Now I'll call the PM agent with the enriched brief and project context. The agent will create detailed USER-STORY.md and TASKS.md files following best practices.
+Now I'll explicitly invoke the PM agent with the enriched brief and project context. The agent is defined at `.claude/agents/project-manager.md` and will create detailed US-story.md and individual TASK-*.md files following best practices.
 </thinking>
 
-**Prepare Agent Input:**
-- [ ] Combine enriched brief with project context
-- [ ] Set role parameter (pm or techlead)
-- [ ] Prepare constraints object with technical requirements
-- [ ] Format input for agent consumption
+**Agent Information:**
+- **Agent File**: `.claude/agents/project-manager.md`
+- **Agent Type**: project-manager
+- **Model**: sonnet (Claude Sonnet 4.5)
+- **Tools Available**: Read, Write, Grep, Glob
+- **Invocation**: Automatic when user provides feature brief
 
-**Call Agent via Task Tool:**
+**Prepare Context for Agent:**
 
-Use the Task tool with `subagent_type="project-manager"` to invoke the PM agent:
+The agent will receive context from the conversation, so prepare it clearly:
 
 ```markdown
-Call @agent-project-manager with:
+FEATURE BRIEF (Enhanced):
+{enriched_feature_brief_from_step_1_and_2}
 
-**Input Parameters:**
-- $role: "{pm|techlead}"
-- $description: "{enriched_feature_brief}"
-- $constraints: "{technical_constraints_from_project}"
-- $project_context: "{CLAUDE.md + README.md + existing_patterns}"
+ROLE: {pm|techlead}
 
-**Expected Deliverables:**
-1. US-story.md with:
-   - Story ID (US-{ID})
-   - Title
-   - Description
-   - Acceptance Criteria
-   - Security Considerations
-   - Testing Requirements
-   - Architecture Notes
+PROJECT CONTEXT:
+- Project Type: {identified_from_files}
+- Architecture: {from_CLAUDE.md_or_README}
+- Testing Framework: {pytest|jest|etc}
+- Code Style: {Black|Prettier|etc}
 
-2. Individual TASK-*.md files (one per task) with:
-   - Task ID (TASK-1.1, TASK-1.2, etc.)
-   - Task title and description
-   - Dependencies between tasks
-   - Estimated complexity
-   - Required skills
-   - Placeholder for GitHub issue number
+TECHNICAL CONSTRAINTS:
+- Programming Languages: {python|javascript|etc}
+- Frameworks: {django|react|etc}
+- Security Policies: {from_project_context}
+- Performance Requirements: {if_any}
+
+OUTPUT DIRECTORY: ./project-management/US-STORY/US-{ID}-{story-name}/
+STORY ID: US-{generated_id}
 ```
 
-**Agent Execution:**
-- [ ] Invoke Task tool with project-manager subagent type
-- [ ] Wait for agent completion (timeout: 5 minutes)
-- [ ] Capture agent output (US-story.md content, individual TASK-*.md files content)
-- [ ] Validate output format is correct
-- [ ] Parse task count from agent output
+**Invoke Agent Using Task Tool:**
+
+Since the agent has `description: "Use PROACTIVELY when user provides a feature brief"`, it will be invoked automatically by Claude Code when the feature brief is detected in the conversation.
+
+However, to ensure explicit invocation, you can invoke it via the Task tool:
+
+```
+Task tool will call the project-manager agent, which will:
+1. Extract context from the conversation (above)
+2. Create US-story.md with comprehensive details
+3. Break down into individual TASK-X.Y.md files
+4. Write files to the output directory
+5. Return file locations and summary
+```
+
+**Agent Execution Steps:**
+- [ ] Agent reads feature brief from conversation
+- [ ] Agent identifies role (pm or techlead)
+- [ ] Agent extracts technical constraints
+- [ ] Agent analyzes project context
+- [ ] Agent creates US-story.md with:
+  - Story ID (US-{ID})
+  - Title and description
+  - Acceptance Criteria (specific, measurable, testable)
+  - Security Considerations (OWASP, input validation, auth)
+  - Testing Requirements (unit, integration, edge cases)
+  - Technical Dependencies
+  - Architecture Impact
+  - Non-Functional Requirements
+  - Definition of Done
+- [ ] Agent breaks down into atomic tasks
+- [ ] Agent creates individual TASK-X.Y.md files with:
+  - Task ID (TASK-1.1, TASK-1.2, etc.)
+  - Task description and implementation approach
+  - Dependencies between tasks
+  - Effort estimate (S/M/L, hours)
+  - Acceptance criteria
+  - Security checklist
+  - Testing checklist
+  - Quality gates
+  - Skills required
+- [ ] Agent validates all acceptance criteria are covered
+- [ ] Agent ensures task dependencies are correct
+- [ ] Agent writes all files to output directory
+
+**Expected Output from Agent:**
+1. **US-story.md** - Written to `./project-management/US-STORY/US-{ID}-{story-name}/`
+2. **TASK-1.1.md, TASK-1.2.md, etc.** - Written to `./project-management/US-STORY/US-{ID}-{story-name}/TASKS/`
+3. **Summary** - Number of tasks created, file locations
+
+**Validation After Agent Completes:**
+- [ ] Verify US-story.md exists and is valid
+- [ ] Verify all TASK-*.md files exist in TASKS/ subdirectory
+- [ ] Count task files
+- [ ] Check US-story.md has all required sections
+- [ ] Check each TASK-*.md has proper format
+- [ ] Validate Story ID format: US-X.Y
+- [ ] Validate Task ID format: TASK-X.Y
+- [ ] Validate filename format: TASK-X.Y.md
 
 **Error Handling:**
-- If agent timeout: Return error "PM agent exceeded 5-minute limit. Simplify brief and retry."
-- If invalid output format: Return error "PM agent returned invalid format. Please file bug report."
-- If agent failure: Return error with agent's error message
+- If agent timeout (>5 minutes): Return error "PM agent exceeded time limit. Try breaking the feature into smaller pieces."
+- If invalid output format: Return error "PM agent returned invalid format. Check agent template at .claude/agents/project-manager.md"
+- If agent failure: Return error "PM agent failed: {error_message}"
+- If missing required sections: Return error "PM agent output missing required sections: {list}"
+- If no tasks created: Return error "PM agent created story but no tasks. Feature may be too vague - add more details."
 
-### 4. Enhance Tasks with Codebase Context
+### Step 6: Enhance Tasks with Codebase Context
 
 <thinking>
 The PM agent has created initial tasks, but they lack codebase-specific context. Now I'll invoke the task-enhancer agent to research the codebase and add technical details, relevant files, code patterns, and architectural guidance to each task. This makes tasks immediately actionable for developers.
 </thinking>
+
+**Agent Information:**
+- **Agent File**: `.claude/agents/task-enhancer.md`
+- **Agent Type**: task-enhancer
+- **Purpose**: Add codebase-specific context to tasks
+- **Tools Available**: Read, Write, Grep, Glob (for codebase research)
 
 **Prepare Task Enhancement:**
 - [ ] Identify output directory where TASK-*.md files were created
@@ -168,39 +290,46 @@ The PM agent has created initial tasks, but they lack codebase-specific context.
 - [ ] Determine project root directory
 - [ ] Identify codebase focus areas (if any)
 
-**Call Task Enhancer Agent via Task Tool:**
+**Invoke Task Enhancer Agent:**
 
-Use the Task tool with `subagent_type="task-enhancer"` to invoke the task enhancement agent:
+The task-enhancer agent will research the codebase and enhance each task file with technical context.
 
+**Context for Agent:**
 ```markdown
-Call @agent-task-enhancer with:
-
-**Input Parameters:**
-- $tasks_dir: "{output_dir}/TASKS/"
-- $story_file: "{output_dir}/US-story.md"
-- $project_root: "{current_project_root}"
-- $codebase_focus: "{specific_dirs_or_*_for_all}"
-
-**Expected Enhancements:**
-For each TASK-*.md file, add:
-1. Technical Context - How task fits into architecture
-2. Relevant Files - Existing files to reference
-3. Files to Create/Modify - Specific file paths
-4. Code Patterns - Examples from similar implementations
-5. Dependencies - Libraries and internal modules
-6. Architecture Integration - Component relationships
-7. Testing Strategy - Based on existing test patterns
-8. Security Considerations - Based on current patterns
-9. Implementation Tips - Do's, Don'ts, Gotchas
-
-**Output:**
-Enhanced TASK-*.md files with rich technical context
+TASKS DIRECTORY: ./project-management/US-STORY/US-{ID}-{story-name}/TASKS/
+STORY FILE: ./project-management/US-STORY/US-{ID}-{story-name}/US-story.md
+PROJECT ROOT: {current_working_directory}
+CODEBASE FOCUS: * (all directories)
 ```
 
+**Agent Workflow:**
+1. Agent scans TASKS/ directory for all TASK-*.md files
+2. For each task:
+   - Reads task description and acceptance criteria
+   - Uses Grep to find relevant files in codebase
+   - Uses Glob to find similar patterns
+   - Identifies code examples to reference
+   - Finds dependencies (imports, libraries)
+   - Maps architecture integration points
+   - Identifies testing patterns from test files
+   - Extracts security patterns from existing code
+3. Agent enhances each TASK-*.md with:
+   - **Technical Context** - How task fits into architecture
+   - **Relevant Files** - Existing files to reference with paths
+   - **Files to Create/Modify** - Specific file paths
+   - **Code Patterns** - Examples from similar implementations
+   - **Dependencies** - Libraries and internal modules
+   - **Architecture Integration** - Component relationships
+   - **Testing Strategy** - Based on existing test patterns
+   - **Security Considerations** - Based on current patterns
+   - **Implementation Tips** - Do's, Don'ts, Gotchas
+4. Agent writes enhanced content back to each TASK-*.md file
+5. Agent returns summary of enhancements
+
 **Agent Execution:**
-- [ ] Invoke Task tool with task-enhancer subagent type
+- [ ] Invoke task-enhancer agent (automatic or explicit via Task tool)
 - [ ] Wait for agent completion (timeout: 10 minutes - needs time to research codebase)
-- [ ] Verify each TASK-*.md file now has "Technical Context" section
+- [ ] Verify each TASK-*.md file now has enhanced sections
 - [ ] Validate enhancement quality (relevant files found, code patterns included)
 
 **Enhancement Validation:**
@@ -228,27 +357,17 @@ Enhanced TASK-*.md files with rich technical context
 - ✅ Security considerations are project-specific
 - ✅ Implementation tips prevent common mistakes
 
-### 5. Generate and Write Output Files
+### Step 7: Verify Output Files
 
 <thinking>
-The PM agent has provided the initial content, and the task-enhancer has added codebase context. Files have already been written by the agents. Now I verify they exist and are valid.
+The PM agent and task-enhancer agent have written all files. Now I verify they exist, are valid, and contain all required sections.
 </thinking>
 
-**File Generation:**
-- [ ] Format US-story.md content with proper markdown structure
-- [ ] Include Story ID (US-{ID}) at the top of US-story.md
-- [ ] Format each TASK-*.md file with proper task structure
-- [ ] Add metadata headers (creation date, generated by Claude Code, story ID)
-- [ ] Ensure consistent formatting (line breaks, spacing)
-- [ ] Add placeholder for GitHub issue numbers in each file
+**File Verification (agents have already written files):**
+- [ ] Confirm output directory exists: `./project-management/US-STORY/US-{ID}-{story-name}/`
+- [ ] Confirm TASKS subdirectory exists: `./project-management/US-STORY/US-{ID}-{story-name}/TASKS/`
 
-**File Writing:**
-- [ ] Determine output directory: `./project-management/US-STORY/US-{ID}-{story-name}/`
-- [ ] Write US-story.md to output directory
-- [ ] Write each TASK-{ID}.md to `{output_directory}/TASKS/` subdirectory
-- [ ] Set appropriate file permissions (644 for files)
-
-**Validation:**
+**Content Validation:**
 - [ ] Verify US-story.md exists
 - [ ] Verify all TASK-*.md files exist in TASKS/ subdirectory
 - [ ] Count task files to ensure all were written
@@ -261,7 +380,7 @@ The PM agent has provided the initial content, and the task-enhancer has added c
 - If write fails (permission denied): Return error "Permission denied. Check write permissions for directory."
 - If validation fails: Return error with specific validation issue
 
-### 6. Create GitHub Issues (MANDATORY)
+### Step 8: Create GitHub Issues (MANDATORY)
 
 <thinking>
 Now that files are created, I must create GitHub issues for the main story and all tasks. This is a mandatory step that always executes.
@@ -315,7 +434,7 @@ This section ALWAYS executes (not optional). Prerequisites already validated in 
 - If issue number capture fails: Warn but continue "Could not capture issue number. Check GitHub directly."
 - If file update fails: Warn "Could not update files with issue numbers. Issues created but not linked in files."
 
-### 7. Git Operations
+### Step 9: Git Operations
 
 <thinking>
 If we're in a git repository, we should add the new files for tracking but NOT commit them. The user will commit when ready.
@@ -337,7 +456,7 @@ If we're in a git repository, we should add the new files for tracking but NOT c
 **Error Handling:**
 - If git add fails: Warn but continue "Could not add files to git. Add manually with: git add ./project-management/US-STORY/US-{ID}-{name}/"
 
-### 8. Final Summary and Output
+### Step 10: Final Summary and Output
 
 <thinking>
 Provide clear, actionable summary of what was created and next steps.
@@ -579,23 +698,94 @@ Add OAuth2 authentication with Google and GitHub providers to allow users to sig
 💡 Tip: Use '/lazy task-exec all --story US-3.4' to execute all tasks for this story
 ```
 
-## Notes
+## Workflow Summary
 
-- This command receives **enriched input** from the pre-prompt-enrichment hook automatically
-- The enrichment adds architecture, security, testing, and edge case context
-- The PM agent uses this enrichment to create comprehensive user stories and tasks
-- **NEW: Task-enhancer agent** researches codebase and adds technical context to each task:
-  - Relevant files to reference (existing similar implementations)
-  - Code patterns and examples from the codebase
-  - Specific files to create/modify with paths
-  - Dependencies (libraries + internal modules)
-  - Architecture integration guidance
-  - Testing strategy based on project patterns
-  - Implementation tips (do's, don'ts, gotchas from codebase)
-- **Story ID is auto-generated** by scanning existing stories and incrementing
+This command orchestrates multiple agents to create a complete feature specification:
+
+### Step-by-Step Agent Workflow
+
+1. **Load Feature Brief**
+   - From STT Prompt Enhancer file (`--file` flag)
+   - From direct input (command arguments)
+   - Parse role and output directory options
+
+2. **Pre-Prompt Enrichment** (Automatic Hook)
+   - Hook: `user_prompt_submit`
+   - Adds: Architecture patterns, security requirements, testing strategy, edge cases
+   - Model: Claude Haiku (cost efficient)
+
+3. **Parse Arguments and Validate Context**
+   - Generate Story ID (auto-increment from existing stories)
+   - Create directory structure
+   - Validate git repository and GitHub CLI setup
+
+4. **Load Project Context**
+   - Read CLAUDE.md, README.md
+   - Identify project type, frameworks, testing patterns
+   - Extract technical constraints
+
+5. **Invoke Project Manager Agent** (Explicit)
+   - Agent: `.claude/agents/project-manager.md`
+   - Creates: US-story.md with comprehensive details
+   - Creates: Individual TASK-X.Y.md files (atomic, testable tasks)
+   - Validates: All acceptance criteria covered, dependencies mapped
+
+6. **Invoke Task Enhancer Agent** (Explicit)
+   - Agent: `.claude/agents/task-enhancer.md`
+   - Researches: Codebase for relevant files, patterns, examples
+   - Enhances: Each TASK-*.md with technical context
+   - Adds: Relevant files, code patterns, dependencies, architecture integration
+
+7. **Verify Output Files**
+   - Confirm US-story.md exists and is valid
+   - Confirm all TASK-*.md files exist
+   - Validate format and required sections
+
+8. **Create GitHub Issues** (MANDATORY)
+   - Create main story issue
+   - Create sub-issues for each task
+   - Link tasks to story
+   - Update files with issue numbers
+
+9. **Git Operations**
+   - Add files to git (but do NOT commit)
+   - User controls when to commit
+
+10. **Final Summary**
+    - Display created files and issue numbers
+    - Show next steps
+
+## Key Features
+
+- **Input Flexibility**: Accepts STT enhanced files or direct input
+- **Automatic Enrichment**: Pre-prompt hook adds comprehensive context
+- **Explicit Agent Invocation**: Clear project-manager and task-enhancer agent workflow
+- **Codebase-Aware Tasks**: Tasks include relevant files, patterns, and examples
+- **Auto Story ID**: Scans existing stories and auto-increments
+- **GitHub Integration**: Mandatory issue creation for traceability
+- **Quality Standards**: Each task has security, testing, and quality checklists
+
+## Important Notes
+
+- **Story ID is auto-generated**: Scans `./project-management/US-STORY/` and increments
 - **Directory structure is standardized**: `./project-management/US-STORY/US-{ID}-{name}/`
-- **GitHub issue creation is MANDATORY** - always creates issues for story and all tasks (with enhanced content)
-- **Each task gets its own file** in the TASKS/ subdirectory
-- Files are added to git but **not committed** - user controls when to commit
-- Use `/lazy task-exec` after this command to implement the tasks
-- The `gh` CLI must be installed and authenticated before running this command
+- **Each task gets its own file**: TASK-1.1.md, TASK-1.2.md, etc. in TASKS/ subdirectory
+- **GitHub CLI required**: Must have `gh` installed and authenticated
+- **Files added to git but NOT committed**: User controls when to commit
+- **Use `/lazy task-exec TASK-X.Y` after this command to implement tasks**
+
+## Agent Details
+
+### Project Manager Agent
+- **File**: `.claude/agents/project-manager.md`
+- **Model**: Claude Sonnet 4.5
+- **Tools**: Read, Write, Grep, Glob
+- **Output**: US-story.md + multiple TASK-X.Y.md files
+- **Automatic Invocation**: Yes (when feature brief detected)
+
+### Task Enhancer Agent
+- **File**: `.claude/agents/task-enhancer.md`
+- **Purpose**: Add codebase-specific context to tasks
+- **Research**: Uses Grep/Glob to find relevant files and patterns
+- **Enhancements**: Technical context, code examples, architecture integration
+- **Timeout**: 10 minutes (needs time to research codebase)
