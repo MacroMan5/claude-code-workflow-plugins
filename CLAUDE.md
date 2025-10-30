@@ -20,6 +20,49 @@ Automate mundane tasks (formatting, commits, PRs) while enforcing discipline (qu
 
 Commands are your primary interface to LAZY_DEV. Think of them as orchestrators that coordinate agents, skills, and quality checks.
 
+### Project Initialization Commands
+
+#### `/lazy init-project`
+
+**When to use:** Bootstrap a new project with complete documentation suite from a project idea.
+
+**Input:** Project description or enhanced prompt file.
+
+**What it does:**
+- Takes project description/prompt
+- Invokes project-planner skill → PROJECT-OVERVIEW.md + SPECIFICATIONS.md
+- Invokes tech-stack-architect skill → TECH-STACK.md + ARCHITECTURE.md
+- Creates .meta/last-sync.json for tracking
+- Stages files for git review
+
+**Examples:**
+```bash
+# From description
+/lazy init-project "Build a SaaS task management platform with real-time collaboration"
+
+# From file
+/lazy init-project --file project_brief.md
+
+# Minimal mode (skip architecture)
+/lazy init-project "Simple REST API" --minimal
+```
+
+**Triggers:**
+- `project-planner` skill - generates overview and specs
+- `tech-stack-architect` skill - selects stack and designs architecture
+
+**Output:**
+```
+./project-management/
+├── PROJECT-OVERVIEW.md
+├── SPECIFICATIONS.md
+├── TECH-STACK.md
+├── ARCHITECTURE.md
+└── .meta/last-sync.json
+```
+
+---
+
 ### Planning Commands
 
 #### `/lazy plan`
@@ -316,6 +359,37 @@ Story review incomplete - 2 CRITICAL, 3 WARNING, 1 SUGGESTION issues found.
 
 ---
 
+#### `/lazy question`
+
+**When to use:** Ask questions about the codebase or general technical topics.
+
+**Input:** Question as string.
+
+**What it does:**
+- Analyzes question to determine if it's codebase-specific or general knowledge
+- **For codebase questions**: Searches files with Grep/Glob, reads relevant code, answers with file:line citations
+- **For general questions**: Delegates to research agent for documentation/web lookup
+- **IMPORTANT**: Creates NO files, NO documentation, NO commits - only answers questions
+
+**Examples:**
+```bash
+# Codebase questions
+/lazy question "where is user authentication handled?"
+/lazy question "how does the payment processor work?"
+/lazy question "what files implement the REST API?"
+
+# General questions (uses research agent)
+/lazy question "what is the difference between JWT and session tokens?"
+/lazy question "how to implement OAuth2 in Python?"
+/lazy question "best practices for API versioning?"
+```
+
+**Output:**
+- Inline answer with citations (codebase) or sources (general)
+- No artifact creation
+
+---
+
 #### `/lazy memory-graph`
 
 **When to use:** Manually persist durable facts to the project's knowledge graph.
@@ -371,165 +445,197 @@ Story review incomplete - 2 CRITICAL, 3 WARNING, 1 SUGGESTION issues found.
 
 ## Skills
 
-Skills are reusable patterns that enhance commands and agents. They're automatically injected or manually invoked based on context.
+Skills are reusable patterns that enhance commands and agents. **Skills are MODEL-INVOKED** - I (Claude) autonomously decide when to use them based on your request and the skill's description.
 
-### Auto-Triggered Skills
+### How Skills Work (Anthropic Best Practice)
 
-These activate automatically during command execution:
+**Autonomous Activation:**
+- Skills are NOT user-invoked commands (you don't type `/skill-name`)
+- I load skills automatically when relevant to your task
+- Decision based on: skill description matching your request context
+- No explicit triggering needed - it happens naturally
 
-#### `brainstorming`
+**Manual Testing:**
+- Use Skill tool to manually invoke: `Skill(command="skill-name")`
+- Useful for testing or explicit skill activation
 
-**Triggers:** During `/lazy plan` when multiple design approaches exist.
+**Key Principle:** "The description field is critical for skill discovery" - Anthropic
 
-**What it does:** Generates 3-5 implementation options with pros/cons, recommends one with rationale.
+### All Available Skills (22 Total)
 
-**Output:** Table with Option | Pros | Cons | Effort | Risk
+Skills are organized by type. Each skill's description tells me when to activate it.
 
----
+#### Planning & Design Skills
 
-#### `memory-graph`
+**`brainstorming`** (.claude/skills/brainstorming/SKILL.md)
+- **Description:** Structured ideation for options, trade-offs, and a clear decision
+- **When I use it:** User mentions "brainstorm", "options", "approaches", "design choices", or when planning features with multiple viable implementations
+- **Output:** Table with Option | Pros | Cons | Effort | Risk + recommendation
 
-**Triggers:** When UserPromptSubmit hook detects durable facts (ownership, decisions, endpoints).
+**`task-slicer`** (.claude/skills/task-slicer/SKILL.md)
+- **Description:** Split features into atomic 2–4h tasks with independent tests and minimal dependencies
+- **When I use it:** Breaking down user stories into implementable tasks during `/lazy plan`
+- **Output:** 3-10 tasks with descriptions, files, dependencies, estimates
 
-**What it does:** Persists facts to project's knowledge graph via MCP Memory.
+**`ac-expander`** (.claude/skills/ac-expander/SKILL.md)
+- **Description:** Turn vague Acceptance Criteria into measurable checks and test assertions
+- **When I use it:** Story creation or when ACs need clarification
+- **Output:** Expanded, testable acceptance criteria
 
-**Disable:** Set `LAZYDEV_DISABLE_MEMORY_SKILL=1`
-
-**Examples of auto-detection:**
-- "service:api owned by Alice"
-- "repo:backend endpoint:https://api.example.com"
-- "decision: use Postgres for better transactions"
-
----
-
-#### `output-style-selector`
-
-**Triggers:** During UserPromptSubmit hook on every command.
-
-**What it does:** Selects appropriate output format (table, list, code, prose) based on command context.
-
-**Styles:**
-- `table-based` - For comparisons and matrices
-- `list-based` - For action items and steps
-- `code-first` - For technical implementations
-- `prose` - For explanations and reports
-
----
-
-#### `context-packer`
-
-**Triggers:** Before sub-agent calls and during UserPromptSubmit enrichment.
-
-**What it does:** Summarizes relevant context (files, symbols, commits) to reduce token usage.
-
-**Output:** 10-20 line brief with:
-- Key file paths
-- Important symbols/functions
-- Last 3 relevant commits
-- Pointers to exact lines (not full files)
+**`story-traceability`** (.claude/skills/story-traceability/SKILL.md)
+- **Description:** Ensure Acceptance Criteria map to Tasks and Tests for PR-per-story workflow
+- **When I use it:** Story review to verify completeness
+- **Output:** Traceability matrix linking ACs → Tasks → Tests
 
 ---
 
-### Manual-Triggered Skills
+#### Development Skills
 
-These are invoked explicitly by commands or when specific patterns are detected:
+**`test-driven-development`** (.claude/skills/test-driven-development/SKILL.md)
+- **Description:** Enforce RED→GREEN→REFACTOR micro-cycles and keep diffs minimal
+- **When I use it:** Implementing features when TDD is required or requested
+- **Output:** Test-first workflow with small incremental changes
 
-#### `story-traceability`
+**`diff-scope-minimizer`** (.claude/skills/diff-scope-minimizer/SKILL.md)
+- **Description:** Keep changes narrowly scoped with a tiny patch plan and stop criteria
+- **When I use it:** Preventing scope creep during implementation
+- **Output:** Minimal diff strategy with clear boundaries
 
-**When to use:** Map acceptance criteria to tasks to tests.
+**`code-review-request`** (.claude/skills/code-review-request/SKILL.md)
+- **Description:** Request and process code review efficiently with a simple rubric and patch plan
+- **When I use it:** Complex or security-sensitive changes need review
+- **Output:** Review checklist and feedback
 
-**Used by:** `project-manager` agent during story creation, `reviewer-story` agent during review.
-
-**What it does:** Ensures every AC has corresponding tasks, every task has tests, creates traceability matrix.
-
----
-
-#### `task-slicer`
-
-**When to use:** Break large features into atomic, estimable tasks.
-
-**Used by:** `project-manager` agent during story creation.
-
-**What it does:**
-- Analyzes feature scope
-- Creates tasks of 2-4 hours each
-- Ensures tasks are independent and testable
-- Assigns estimates (S/M/L)
+**`regression-testing`** (.claude/skills/regression-testing/SKILL.md)
+- **Description:** Use after bug fixes to evaluate need for regression tests and implement them. Triggers when bugs are fixed to prevent future regressions. Claude decides if regression tests add value based on bug severity, code complexity, and existing coverage.
+- **When I use it:** After bug fixes are implemented, to decide if regression tests would be valuable
+- **Output:** Evaluation decision (add/skip test) + regression test implementation if valuable
 
 ---
 
-#### `git-worktrees`
+#### Quality & Review Skills
 
-**When to use:** Work on multiple stories in parallel with isolated environments.
+**`security-audit`** (.claude/skills/security-audit/SKILL.md)
+- **Description:** Triggers for authentication, payments, user input, and API endpoints to check OWASP risks. Auto-evaluates security need and provides actionable fixes, not checklists.
+- **When I use it:** Auth, login, payment, API endpoints, user input, SQL queries, file uploads
+- **Output:** Risk-level assessment + specific security issues with fast fixes
 
-**Used by:** Manually when needed.
+**`breaking-change-detector`** (.claude/skills/breaking-change-detector/SKILL.md)
+- **Description:** Detects backward-incompatible changes to public APIs, function signatures, endpoints, and data schemas before they break production. Suggests migration paths.
+- **When I use it:** Modifying public APIs, endpoints, function signatures, data models
+- **Output:** Breaking changes detected + backward-compatible fixes + version bump recommendation
 
-**What it does:**
-- Creates separate working directories for each story
-- Maintains isolated dependencies
-- Prevents branch switching conflicts
+**`error-handling-completeness`** (.claude/skills/error-handling-completeness/SKILL.md)
+- **Description:** Evaluates if error handling is sufficient for new code - checks try-catch coverage, logging, user messages, retry logic. Focuses on external calls and user-facing code.
+- **When I use it:** API calls, database operations, file I/O, async code, type conversions
+- **Output:** Missing error handling + specific fixes with code examples
 
-**Example:**
-```bash
-# Create worktree for new story
-git worktree add ../project-US-3.4 feat/US-3.4-oauth2
+**`performance-budget-checker`** (.claude/skills/performance-budget-checker/SKILL.md)
+- **Description:** Detects performance anti-patterns like N+1 queries, nested loops, large file operations, and inefficient algorithms. Suggests fast fixes before issues reach production.
+- **When I use it:** Database queries, loops, file operations, API calls, list operations
+- **Output:** Performance issues + complexity analysis + optimization fixes
 
-# Work in isolation
-cd ../project-US-3.4
-/lazy code TASK-001
+---
 
-# Cleanup when done
-git worktree remove ../project-US-3.4
+#### Context & Optimization Skills
+
+**`context-packer`** (.claude/skills/context-packer/SKILL.md)
+- **Description:** Build a compact, high-signal context brief (files, symbols, recent commits) instead of pasting large code blocks
+- **When I use it:** Before sub-agent calls, large codebases, token optimization needed
+- **Output:** 10-20 line brief with pointers, not full files
+
+**`output-style-selector`** (.claude/skills/output-style-selector/SKILL.md)
+- **Description:** Automatically choose the best output style (tables, bullets, YAML, HTML, concise) to improve scanability and save tokens
+- **When I use it:** Every prompt to select optimal format
+- **Output:** Style declaration (table-based, bullet-points, etc.)
+
+---
+
+#### Integration & Workflow Skills
+
+**`gh-issue-sync`** (.claude/skills/gh-issue-sync/SKILL.md)
+- **Description:** Create or update GitHub issue for the story and sub-issues for tasks
+- **When I use it:** Story creation with GitHub integration
+- **Output:** GitHub issues created/updated
+
+**`git-worktrees`** (.claude/skills/git-worktrees/SKILL.md)
+- **Description:** Use Git worktrees to isolate tasks and keep diffs small and parallelizable
+- **When I use it:** User wants parallel development or branch isolation
+- **Output:** Worktree setup instructions
+
+**`memory-graph`** (.claude/skills/memory-graph/SKILL.md)
+- **Description:** Persistent memory graph skill using the MCP Memory server
+- **When I use it:** Durable facts detected (ownership, decisions, endpoints) or explicit memory requests
+- **Output:** MCP Memory tool calls to persist/retrieve knowledge
+- **Disable:** Set `LAZYDEV_DISABLE_MEMORY_SKILL=1`
+
+**`finishing-a-development-branch`** (.claude/skills/finishing-a-development-branch/SKILL.md)
+- **Description:** Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
+- **When I use it:** Task/story completion, ready for integration
+- **Output:** Options for merge, PR creation, or cleanup
+
+---
+
+#### Project Initialization Skills
+
+**`project-planner`** (.claude/skills/project-planner/SKILL.md)
+- **Description:** Generates project overview and specifications from project prompt. Creates PROJECT-OVERVIEW.md with vision/goals/features and SPECIFICATIONS.md with functional/non-functional requirements.
+- **When I use it:** Starting new projects, creating project documentation
+- **Output:** PROJECT-OVERVIEW.md + SPECIFICATIONS.md
+
+**`tech-stack-architect`** (.claude/skills/tech-stack-architect/SKILL.md)
+- **Description:** Selects appropriate tech stack and designs system architecture. Creates TECH-STACK.md with technology choices/rationale and ARCHITECTURE.md with diagrams.
+- **When I use it:** After project planning, when designing technical architecture
+- **Output:** TECH-STACK.md + ARCHITECTURE.md with mermaid diagrams
+
+**`project-docs-sync`** (.claude/skills/project-docs-sync/SKILL.md)
+- **Description:** Automatically syncs project documentation when significant changes occur. Conservative auto-trigger on tech stack changes, architecture refactors, or requirement updates.
+- **When I use it:** Auto-triggers on PostToolUse when project-management/ files change
+- **Output:** Sync report with updated documentation
+
+**`agent-selector`** (.claude/skills/agent-selector/SKILL.md)
+- **Description:** Analyzes user prompts and recommends the best specialized agent for the task (tester, research, reviewer, refactor, documentation, cleanup, coder). Auto-triggers on UserPromptSubmit to route work efficiently.
+- **When I use it:** Auto-triggers on every prompt to intelligently delegate to specialized agents
+- **Output:** Agent recommendation with rationale
+
+---
+
+### Skill Best Practices (From Anthropic)
+
+**1. Effective Descriptions:**
+- Include BOTH what the skill does AND when to use it
+- Use specific trigger words users would mention
+- Example: "Use when facing 3+ independent failures..." (not just "helps with failures")
+
+**2. Keep Skills Focused:**
+- One skill = one capability
+- Split broad skills (e.g., "document processing") into focused ones
+
+**3. File Organization:**
+- Personal skills: `~/.claude/skills/skill-name/` (user-specific)
+- Project skills: `.claude/skills/skill-name/` (team-shared via git)
+- Supporting files: reference.md, examples.md, scripts/, templates/
+
+**4. YAML Frontmatter Requirements:**
+```yaml
+---
+name: skill-name  # lowercase, hyphens, max 64 chars (REQUIRED)
+description: What it does and when to use it (REQUIRED, max 1024 chars)
+allowed-tools: Read, Write, Bash  # Optional: restrict tool access
+---
 ```
 
----
+**5. Manual Testing:**
+```bash
+# Use Skill tool to manually trigger
+Skill(command="skill-name")
+```
 
-#### `test-driven-development`
-
-**When to use:** TDD workflow enforcement.
-
-**Used by:** `coder` agent when tests are required.
-
-**What it does:** Enforces RED → GREEN → REFACTOR cycle:
-1. Write failing test (RED)
-2. Minimal implementation (GREEN)
-3. Improve code quality (REFACTOR)
-
-**Enabled when:**
-- Project has test framework (pytest.ini, jest.config.js)
-- TDD mentioned in CLAUDE.md or README
-- `LAZYDEV_ENFORCE_TDD=1` environment variable set
-
----
-
-#### `code-review-checklist`
-
-**When to use:** Comprehensive review criteria.
-
-**Used by:** `reviewer` and `reviewer-story` agents.
-
-**Checks:**
-- Code quality (readability, maintainability)
-- Correctness (meets ACs, edge cases)
-- Security (OWASP Top 10)
-- Testing (coverage, edge cases)
-- Documentation (public APIs)
-
----
-
-#### `security-scanner`
-
-**When to use:** OWASP Top 10 validation.
-
-**Used by:** Review agents for security-sensitive code (auth, payment, data handling).
-
-**Checks:**
-- Input validation
-- SQL injection prevention
-- XSS prevention
-- Authentication/authorization
-- Secrets management (no hardcoded keys)
-- Proper error messages (no data leaks)
+**6. How I Decide to Use Skills:**
+- Match your request keywords against skill descriptions
+- Evaluate relevance to current task
+- Load skill content when match threshold met
+- Apply skill instructions to your request
 
 ---
 
@@ -708,6 +814,47 @@ git worktree remove ../project-US-3.5
 - Isolated dependencies
 - True parallel development
 - No merge conflicts during work
+
+---
+
+### Project Initialization Workflow
+
+**Scenario:** Start a new project from scratch with complete documentation.
+
+```bash
+# 1. Initialize project documentation
+/lazy init-project "Build an AI-powered code review SaaS platform"
+
+# ✓ project-planner skill generates:
+#   - PROJECT-OVERVIEW.md (vision, goals, features)
+#   - SPECIFICATIONS.md (requirements, APIs, data models)
+# ✓ tech-stack-architect skill generates:
+#   - TECH-STACK.md (React, Node.js, PostgreSQL + rationale)
+#   - ARCHITECTURE.md (microservices, mermaid diagrams)
+# ✓ Files staged for git review
+
+# 2. Review and customize (optional)
+# Open PROJECT-OVERVIEW.md, TECH-STACK.md in editor
+# Make adjustments if needed
+
+# 3. Commit initial documentation
+git commit -m "docs: initialize project documentation for code review platform"
+
+# 4. Start feature planning
+/lazy plan "User authentication with GitHub OAuth"
+# ✓ Uses PROJECT-OVERVIEW.md and TECH-STACK.md as context
+# ✓ Creates US-1.1-user-authentication/
+
+# 5. Begin implementation
+/lazy code @US-1.1.md
+```
+
+**Timeline:** ~2-3 minutes for full init
+
+**Artifacts:**
+- 4 documentation files (40-50KB total)
+- Ready for feature planning
+- Consistent technical foundation
 
 ---
 
