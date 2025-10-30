@@ -7,9 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.0.0] - 2025-10-30
+## [2.2.0] - 2025-10-30
 
-### Major Release - Production-Ready Plugin
+### Major Release - Simplified Commands and Smart Orchestration
+
+**Breaking Changes:**
+- Simplified command names: `/lazy-dev:*` → `/lazy *`
+- Plugin name changed to "lazy" for marketplace
+- Restructured repository: moved from `LAZY_DEV/.claude/` to `.claude/` at root
+
+### Added
+- **Inline task management** in US-story.md files (no separate task files)
+- **Debug report generation** when `/lazy review` finds issues
+- **`/lazy fix` command** to apply fixes from review reports
+- **Smart defaults** for test/review requirements based on project structure
+
+### Changed
+- Commands now use `/lazy` prefix instead of `/lazy-dev:`
+- Plugin name: "lazy-dev" → "lazy"
+- Repository structure: consolidated to root `.claude/` directory
+- Review workflow: generates structured debug reports on failure
+
+### Improved
+- Command discoverability with simpler `/lazy` namespace
+- Review error handling with machine-readable debug reports
+- Automatic fix routing by issue severity
+- Better marketplace compatibility
+
+---
+
+## [2.0.0] - 2025-10-29
+
+### Production-Ready Plugin Release
 
 **Breaking Changes:**
 - Renamed project from "LAZY" to "LAZY_DEV Framework"
