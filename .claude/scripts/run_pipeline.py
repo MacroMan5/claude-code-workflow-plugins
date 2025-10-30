@@ -5,7 +5,6 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Tuple
 
 
 def run_pipeline(path: str, session_id: str = None) -> int:
@@ -44,7 +43,7 @@ def run_pipeline(path: str, session_id: str = None) -> int:
         ("Format", "format.py", "[FORMAT]"),
         ("Lint", "lint.py", "[LINT]"),
         ("Type Check", "type_check.py", "[TYPE]"),
-        ("Tests", "test_runner.py", "[TEST]")
+        ("Tests", "test_runner.py", "[TEST]"),
     ]
 
     total_start = datetime.utcnow()
@@ -58,7 +57,7 @@ def run_pipeline(path: str, session_id: str = None) -> int:
         result = subprocess.run(
             ["python", str(scripts_dir / script), path, "--session", session_id],
             capture_output=True,
-            text=True
+            text=True,
         )
         stage_duration = (datetime.utcnow() - stage_start).total_seconds()
 

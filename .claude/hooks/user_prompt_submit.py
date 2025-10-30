@@ -479,13 +479,13 @@ def format_context_injection(git_context: dict, current_task: str | None) -> str
 
 def log_prompt(session_id: str, input_data: dict) -> None:
     """
-    Log user prompt to logs/user_prompt_submit.json.
+    Log user prompt to .claude/data/logs/user_prompt_submit.json.
 
     Args:
         session_id: Session identifier
         input_data: Full hook input data
     """
-    log_dir = Path("logs")
+    log_dir = Path(".claude/data/logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / "user_prompt_submit.json"
 
@@ -574,15 +574,13 @@ def main():
         context_injection = format_context_injection(git_context, current_task)
 
         # Lightweight output-style selection
-        style_name = None
-        style_conf = 0.0
-        style_reason = ""
         if os.getenv("LAZYDEV_DISABLE_STYLE") not in {"1", "true", "TRUE"}:
             logger.debug("Selecting output style")
             sel, conf, reason = choose_output_style(original_prompt)
             if sel != "off":
-                style_name, style_conf, style_reason = sel, conf, reason
-                logger.info(f"Output style selected: {sel} (confidence: {conf:.2f}, reason: {reason})")
+                logger.info(
+                    f"Output style selected: {sel} (confidence: {conf:.2f}, reason: {reason})"
+                )
                 style_block = (
                     f"\n\n## Output Style (Auto)\n\n{build_style_block(sel)}\n"
                 )
@@ -620,7 +618,9 @@ def main():
             logger.debug("Detecting memory intent")
             mi = detect_memory_intent(original_prompt)
             if mi.get("enabled"):
-                logger.info(f"Memory graph skill activated: intents={mi['intents']}, mentions={len(mi['mentions'])}")
+                logger.info(
+                    f"Memory graph skill activated: intents={mi['intents']}, mentions={len(mi['mentions'])}"
+                )
                 additional_parts.append(
                     build_memory_skill_block(mi["intents"], mi["mentions"])
                 )
@@ -630,7 +630,9 @@ def main():
             logger.info("Memory skill disabled via LAZYDEV_DISABLE_MEMORY_SKILL")
 
         additional_context = "".join(additional_parts)
-        logger.info(f"Total additional context length: {len(additional_context)} characters")
+        logger.info(
+            f"Total additional context length: {len(additional_context)} characters"
+        )
 
         # Log the prompt
         logger.debug("Logging prompt to file")
@@ -659,7 +661,9 @@ def main():
 
     except json.JSONDecodeError as e:
         # Handle JSON decode errors gracefully
-        logger.error(f"JSON decode error in user_prompt_submit: {type(e).__name__} - {e}")
+        logger.error(
+            f"JSON decode error in user_prompt_submit: {type(e).__name__} - {e}"
+        )
         sys.exit(0)
     except IOError as e:
         # Handle file I/O errors gracefully
@@ -667,7 +671,10 @@ def main():
         sys.exit(0)
     except Exception as e:
         # Handle any other errors gracefully
-        logger.error(f"Unexpected error in user_prompt_submit: {type(e).__name__} - {e}", exc_info=True)
+        logger.error(
+            f"Unexpected error in user_prompt_submit: {type(e).__name__} - {e}",
+            exc_info=True,
+        )
         sys.exit(0)
 
 

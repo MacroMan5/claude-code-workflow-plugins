@@ -191,10 +191,10 @@ def should_block_completion(
 
     # Enforce minimum tests if configured
     if min_tests is not None and test_info["test_count"] < min_tests:
-        return True, f'Minimum tests not met: {test_info["test_count"]}/{min_tests}'
+        return True, f"Minimum tests not met: {test_info['test_count']}/{min_tests}"
 
     # Allow if tests passed
-    return False, f'All tests passing ({test_info["test_count"]} tests)'
+    return False, f"All tests passing ({test_info['test_count']} tests)"
 
 
 def log_stop_event(
@@ -315,7 +315,7 @@ def main():
             print(json.dumps(output))
 
             # Print success message
-            print(f"\n✅ All tests passing! Ready for review.\n", file=sys.stderr)
+            print("\n✅ All tests passing! Ready for review.\n", file=sys.stderr)
 
             sys.exit(0)
 

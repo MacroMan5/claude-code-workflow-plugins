@@ -43,15 +43,22 @@ def run_tests(path: str = "tests/", session_id: Optional[str] = None) -> int:
         "script": "test_runner.py",
         "path": str(path_obj),
         "session_id": session_id,
-        "test_results": {}
+        "test_results": {},
     }
 
     print(f"[TEST] Running Pytest on {path}...")
     start_time = datetime.utcnow()
     result = subprocess.run(
-        ["pytest", str(path_obj), "-v", "--cov=src", "--cov-report=term", "--cov-report=json"],
+        [
+            "pytest",
+            str(path_obj),
+            "-v",
+            "--cov=src",
+            "--cov-report=term",
+            "--cov-report=json",
+        ],
         capture_output=True,
-        text=True
+        text=True,
     )
     duration = (datetime.utcnow() - start_time).total_seconds()
 
@@ -65,18 +72,20 @@ def run_tests(path: str = "tests/", session_id: Optional[str] = None) -> int:
     coverage_file = Path("coverage.json")
     if coverage_file.exists():
         try:
-            with open(coverage_file, 'r') as f:
+            with open(coverage_file, "r") as f:
                 coverage_data = json.load(f)
                 log_entry["coverage"] = {
-                    "total_coverage": coverage_data.get("totals", {}).get("percent_covered", 0),
-                    "files": coverage_data.get("files", {})
+                    "total_coverage": coverage_data.get("totals", {}).get(
+                        "percent_covered", 0
+                    ),
+                    "files": coverage_data.get("files", {}),
                 }
         except (json.JSONDecodeError, FileNotFoundError):
             # Coverage file may not exist or be malformed
             pass
 
     if result.returncode != 0:
-        print(f"\n[ERROR] Tests failed")
+        print("\n[ERROR] Tests failed")
         if result.stderr:
             print(f"Error details: {result.stderr}")
         log_entry["status"] = "failed"
@@ -111,12 +120,12 @@ def _write_log(log_entry: dict, session_id: Optional[str]) -> None:
     # Append to existing log
     logs = []
     if log_file.exists():
-        with open(log_file, 'r') as f:
+        with open(log_file, "r") as f:
             logs = json.load(f)
 
     logs.append(log_entry)
 
-    with open(log_file, 'w') as f:
+    with open(log_file, "w") as f:
         json.dump(logs, f, indent=2)
 
 

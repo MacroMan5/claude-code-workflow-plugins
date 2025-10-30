@@ -55,9 +55,9 @@ def format_python(file_path: Path) -> tuple[bool, str]:
         Tuple of (success, message)
     """
     try:
-        # Try Black first
+        # Try Black first (using python -m for better reliability)
         result = subprocess.run(
-            ["black", "--quiet", str(file_path)],
+            [sys.executable, "-m", "black", "--quiet", str(file_path)],
             capture_output=True,
             text=True,
             timeout=3,
@@ -65,9 +65,9 @@ def format_python(file_path: Path) -> tuple[bool, str]:
 
         black_success = result.returncode == 0
 
-        # Try Ruff format
+        # Try Ruff format (using python -m for better reliability)
         result = subprocess.run(
-            ["ruff", "format", str(file_path)],
+            [sys.executable, "-m", "ruff", "format", str(file_path)],
             capture_output=True,
             text=True,
             timeout=3,
@@ -88,8 +88,8 @@ def format_python(file_path: Path) -> tuple[bool, str]:
         logger.warning("Python formatter timed out (3s)")
     except subprocess.SubprocessError as e:
         logger.warning(f"Formatter subprocess error: {type(e).__name__}")
-    except FileNotFoundError:
-        logger.debug("Black/Ruff not found in PATH")
+    except (FileNotFoundError, ModuleNotFoundError):
+        logger.debug("Black/Ruff not found as Python modules")
 
     return False, "Formatters not available (Black/Ruff)"
 

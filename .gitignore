@@ -2,7 +2,7 @@ temp_mcp_docs/
 
 # Claude Code runtime data and logs
 .claude/data/
-logs/
+.claude/memory/memory.jsonl
 
 # Python virtual environment
 .venv/
@@ -11,3 +11,6 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+
+# Ruff cache
+.ruff_cache/

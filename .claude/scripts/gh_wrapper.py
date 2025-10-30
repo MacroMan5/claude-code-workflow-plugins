@@ -16,7 +16,7 @@ class GitHubWrapper:
         labels: Optional[List[str]] = None,
         milestone: Optional[str] = None,
         assignee: Optional[str] = None,
-        repo: Optional[str] = None
+        repo: Optional[str] = None,
     ) -> str:
         """
         Create GitHub issue.
@@ -67,7 +67,7 @@ class GitHubWrapper:
         base: str = "main",
         head: Optional[str] = None,
         labels: Optional[List[str]] = None,
-        repo: Optional[str] = None
+        repo: Optional[str] = None,
     ) -> str:
         """
         Create GitHub pull request.
@@ -93,12 +93,7 @@ class GitHubWrapper:
             >>> GitHubWrapper.create_pr("Feature", "Description", base="main")
             'https://github.com/owner/repo/pull/456'
         """
-        cmd = [
-            "gh", "pr", "create",
-            "--title", title,
-            "--body", body,
-            "--base", base
-        ]
+        cmd = ["gh", "pr", "create", "--title", title, "--body", body, "--base", base]
 
         if head:
             cmd.extend(["--head", head])
@@ -130,9 +125,7 @@ class GitHubWrapper:
             'feature/new-feature'
         """
         result = subprocess.run(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            capture_output=True,
-            text=True
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True
         )
 
         if result.returncode != 0:
@@ -162,9 +155,19 @@ class GitHubWrapper:
         import json
 
         result = subprocess.run(
-            ["gh", "issue", "list", "--repo", repo, "--state", state, "--json", "number,title,body"],
+            [
+                "gh",
+                "issue",
+                "list",
+                "--repo",
+                repo,
+                "--state",
+                state,
+                "--json",
+                "number,title,body",
+            ],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         if result.returncode != 0:
@@ -177,7 +180,9 @@ def main() -> None:
     """CLI interface for gh_wrapper.py."""
     if len(sys.argv) < 2:
         print("Usage:")
-        print("  python gh_wrapper.py create-issue --title '...' --body '...' [--labels '...']")
+        print(
+            "  python gh_wrapper.py create-issue --title '...' --body '...' [--labels '...']"
+        )
         print("  python gh_wrapper.py create-pr --title '...' --body '...' --base main")
         sys.exit(1)
 
@@ -185,9 +190,22 @@ def main() -> None:
 
     try:
         if command == "create-issue":
-            title = next((sys.argv[i+1] for i, arg in enumerate(sys.argv) if arg == "--title"), None)
-            body = next((sys.argv[i+1] for i, arg in enumerate(sys.argv) if arg == "--body"), None)
-            labels_str = next((sys.argv[i+1] for i, arg in enumerate(sys.argv) if arg == "--labels"), None)
+            title = next(
+                (sys.argv[i + 1] for i, arg in enumerate(sys.argv) if arg == "--title"),
+                None,
+            )
+            body = next(
+                (sys.argv[i + 1] for i, arg in enumerate(sys.argv) if arg == "--body"),
+                None,
+            )
+            labels_str = next(
+                (
+                    sys.argv[i + 1]
+                    for i, arg in enumerate(sys.argv)
+                    if arg == "--labels"
+                ),
+                None,
+            )
 
             if not title or not body:
                 print("[ERROR] Missing required: --title and --body")
@@ -196,17 +214,31 @@ def main() -> None:
             labels = labels_str.split(",") if labels_str else None
 
             issue_url = GitHubWrapper.create_issue(
-                title=title,
-                body=body,
-                labels=labels
+                title=title, body=body, labels=labels
             )
             print(f"[SUCCESS] Issue created: {issue_url}")
 
         elif command == "create-pr":
-            title = next((sys.argv[i+1] for i, arg in enumerate(sys.argv) if arg == "--title"), None)
-            body = next((sys.argv[i+1] for i, arg in enumerate(sys.argv) if arg == "--body"), None)
-            base = next((sys.argv[i+1] for i, arg in enumerate(sys.argv) if arg == "--base"), "main")
-            labels_str = next((sys.argv[i+1] for i, arg in enumerate(sys.argv) if arg == "--labels"), None)
+            title = next(
+                (sys.argv[i + 1] for i, arg in enumerate(sys.argv) if arg == "--title"),
+                None,
+            )
+            body = next(
+                (sys.argv[i + 1] for i, arg in enumerate(sys.argv) if arg == "--body"),
+                None,
+            )
+            base = next(
+                (sys.argv[i + 1] for i, arg in enumerate(sys.argv) if arg == "--base"),
+                "main",
+            )
+            labels_str = next(
+                (
+                    sys.argv[i + 1]
+                    for i, arg in enumerate(sys.argv)
+                    if arg == "--labels"
+                ),
+                None,
+            )
 
             if not title or not body:
                 print("[ERROR] Missing required: --title and --body")
@@ -215,10 +247,7 @@ def main() -> None:
             labels = labels_str.split(",") if labels_str else None
 
             pr_url = GitHubWrapper.create_pr(
-                title=title,
-                body=body,
-                base=base,
-                labels=labels
+                title=title, body=body, base=base, labels=labels
             )
             print(f"[SUCCESS] PR created: {pr_url}")
 

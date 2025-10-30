@@ -18,16 +18,11 @@ def check_tool(tool_name: str, command: List[str]) -> Tuple[bool, str]:
         Tuple of (success: bool, message: str).
     """
     try:
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
+        result = subprocess.run(command, capture_output=True, text=True, timeout=5)
 
         if result.returncode == 0:
             # Extract version from output
-            version = result.stdout.strip().split('\n')[0]
+            version = result.stdout.strip().split("\n")[0]
             return True, f"✅ {tool_name}: {version}"
         else:
             return False, f"❌ {tool_name}: Command failed (exit {result.returncode})"
@@ -80,9 +75,16 @@ def main() -> None:
         print("\nInstallation instructions:")
 
         # Check which tools are missing
-        failed = [(name, cmd) for (success, _), (name, cmd) in zip(results, tools) if not success]
+        failed = [
+            (name, cmd)
+            for (success, _), (name, cmd) in zip(results, tools)
+            if not success
+        ]
 
-        if any("Black" in name or "Ruff" in name or "Mypy" in name or "Pytest" in name for name, _ in failed):
+        if any(
+            "Black" in name or "Ruff" in name or "Mypy" in name or "Pytest" in name
+            for name, _ in failed
+        ):
             print("\n  Install Python tools:")
             print("    pip install black ruff mypy pytest pytest-cov")
             print("  or:")

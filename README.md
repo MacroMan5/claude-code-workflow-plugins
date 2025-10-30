@@ -1,6 +1,6 @@
 # LAZY_DEV Framework
 
-**Version**: 2.2.0 | **License**: MIT | **Status**: Production-Ready
+**Version**: 2.2.0 | **License**: MIT | **Status**: Production-Ready | **Platforms**: Linux, macOS, Windows
 
 [![CI](https://github.com/MacroMan5/claude-code-workflow-plugins/workflows/CI/badge.svg)](https://github.com/MacroMan5/claude-code-workflow-plugins/actions)
 [![CodeQL](https://github.com/MacroMan5/claude-code-workflow-plugins/workflows/CodeQL%20Security%20Analysis/badge.svg)](https://github.com/MacroMan5/claude-code-workflow-plugins/actions)
@@ -9,6 +9,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet.svg)](https://docs.claude.com/en/docs/claude-code)
+[![Cross-Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-brightgreen.svg)](./CROSS_PLATFORM.md)
 
 ---
 
@@ -98,6 +99,14 @@ Automate the mundane (formatting, commits, PRs) while enforcing discipline (qual
 
 ## Installation
 
+### Cross-Platform Support ✅
+
+LAZY_DEV works seamlessly on **Linux, macOS, and Windows**. All hooks, scripts, and tools are cross-platform by design.
+
+**Platform-specific guides:**
+- **All Platforms**: [CROSS_PLATFORM.md](./CROSS_PLATFORM.md) - Complete compatibility guide
+- **Windows Users**: [WINDOWS_SETUP.md](./WINDOWS_SETUP.md) - Windows-specific setup
+
 ### Prerequisites
 
 - Python 3.11+
@@ -106,6 +115,7 @@ Automate the mundane (formatting, commits, PRs) while enforcing discipline (qual
 - git
 - gh CLI (for PR creation)
 - Node.js (for MCP Memory, optional)
+- **Windows only**: Git Bash or WSL (for bash scripts)
 
 ### Step 1: Install Framework
 

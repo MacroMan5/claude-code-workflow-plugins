@@ -25,7 +25,7 @@ import re
 import sys
 from pathlib import Path
 from datetime import datetime
-from hook_utils import sanitize_for_logging, sanitize_dict_for_logging
+from hook_utils import sanitize_dict_for_logging
 
 # Configure logging to stderr with timestamp
 logging.basicConfig(
@@ -445,7 +445,7 @@ def main():
                     file=sys.stderr,
                 )
                 print(
-                    f"Tip: Use Glob or Grep tools instead of bash find/grep for code search.",
+                    "Tip: Use Glob or Grep tools instead of bash find/grep for code search.",
                     file=sys.stderr,
                 )
                 sys.exit(2)
