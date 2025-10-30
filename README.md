@@ -1,11 +1,11 @@
 # LAZY_DEV Framework
 
-**Version**: 2.2.1 | **License**: MIT | **Status**: Production-Ready | **Platforms**: Linux, macOS, Windows
+**Version**: 2.2.2 | **License**: MIT | **Status**: Production-Ready | **Platforms**: Linux, macOS, Windows
 
 [![CI](https://github.com/MacroMan5/claude-code-workflow-plugins/workflows/CI/badge.svg)](https://github.com/MacroMan5/claude-code-workflow-plugins/actions)
 [![CodeQL](https://github.com/MacroMan5/claude-code-workflow-plugins/workflows/CodeQL%20Security%20Analysis/badge.svg)](https://github.com/MacroMan5/claude-code-workflow-plugins/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-2.2.1-blue.svg)](https://github.com/MacroMan5/claude-code-workflow-plugins/releases)
+[![Version](https://img.shields.io/badge/version-2.2.2-blue.svg)](https://github.com/MacroMan5/claude-code-workflow-plugins/releases)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet.svg)](https://docs.claude.com/en/docs/claude-code)

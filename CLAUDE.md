@@ -296,7 +296,7 @@ project-root/
 
 ## Version
 
-**Framework Version:** 2.2.1
+**Framework Version:** 2.2.2
 **Last Updated:** 2025-10-30
 **Status:** Production-Ready
 
