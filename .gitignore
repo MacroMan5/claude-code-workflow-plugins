@@ -3,3 +3,11 @@ temp_mcp_docs/
 # Claude Code runtime data and logs
 .claude/data/
 logs/
+
+# Python virtual environment
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python

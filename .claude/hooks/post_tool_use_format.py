@@ -38,8 +38,8 @@ def get_file_path(tool_name: str, tool_input: dict) -> str | None:
     Returns:
         File path if available, None otherwise
     """
-    if tool_name in ['Edit', 'MultiEdit', 'Write']:
-        return tool_input.get('file_path')
+    if tool_name in ["Edit", "MultiEdit", "Write"]:
+        return tool_input.get("file_path")
 
     return None
 
@@ -57,20 +57,20 @@ def format_python(file_path: Path) -> tuple[bool, str]:
     try:
         # Try Black first
         result = subprocess.run(
-            ['black', '--quiet', str(file_path)],
+            ["black", "--quiet", str(file_path)],
             capture_output=True,
             text=True,
-            timeout=3
+            timeout=3,
         )
 
         black_success = result.returncode == 0
 
         # Try Ruff format
         result = subprocess.run(
-            ['ruff', 'format', str(file_path)],
+            ["ruff", "format", str(file_path)],
             capture_output=True,
             text=True,
-            timeout=3
+            timeout=3,
         )
 
         ruff_success = result.returncode == 0
@@ -78,9 +78,9 @@ def format_python(file_path: Path) -> tuple[bool, str]:
         if black_success or ruff_success:
             tools = []
             if black_success:
-                tools.append('Black')
+                tools.append("Black")
             if ruff_success:
-                tools.append('Ruff')
+                tools.append("Ruff")
 
             return True, f"Formatted with {' + '.join(tools)}"
 
@@ -91,7 +91,7 @@ def format_python(file_path: Path) -> tuple[bool, str]:
     except FileNotFoundError:
         logger.debug("Black/Ruff not found in PATH")
 
-    return False, 'Formatters not available (Black/Ruff)'
+    return False, "Formatters not available (Black/Ruff)"
 
 
 def format_javascript(file_path: Path) -> tuple[bool, str]:
@@ -106,14 +106,14 @@ def format_javascript(file_path: Path) -> tuple[bool, str]:
     """
     try:
         result = subprocess.run(
-            ['npx', 'prettier', '--write', str(file_path)],
+            ["npx", "prettier", "--write", str(file_path)],
             capture_output=True,
             text=True,
-            timeout=3
+            timeout=3,
         )
 
         if result.returncode == 0:
-            return True, 'Formatted with Prettier'
+            return True, "Formatted with Prettier"
 
     except subprocess.TimeoutExpired:
         logger.warning("Prettier timed out (10s)")
@@ -122,7 +122,7 @@ def format_javascript(file_path: Path) -> tuple[bool, str]:
     except FileNotFoundError:
         logger.debug("Prettier not found (npx)")
 
-    return False, 'Prettier not available'
+    return False, "Prettier not available"
 
 
 def format_rust(file_path: Path) -> tuple[bool, str]:
@@ -137,14 +137,11 @@ def format_rust(file_path: Path) -> tuple[bool, str]:
     """
     try:
         result = subprocess.run(
-            ['rustfmt', str(file_path)],
-            capture_output=True,
-            text=True,
-            timeout=3
+            ["rustfmt", str(file_path)], capture_output=True, text=True, timeout=3
         )
 
         if result.returncode == 0:
-            return True, 'Formatted with rustfmt'
+            return True, "Formatted with rustfmt"
 
     except subprocess.TimeoutExpired:
         logger.warning("rustfmt timed out (10s)")
@@ -153,7 +150,7 @@ def format_rust(file_path: Path) -> tuple[bool, str]:
     except FileNotFoundError:
         logger.debug("rustfmt not found in PATH")
 
-    return False, 'rustfmt not available'
+    return False, "rustfmt not available"
 
 
 def format_file(file_path: str) -> dict:
@@ -169,11 +166,7 @@ def format_file(file_path: str) -> dict:
     path = Path(file_path)
 
     if not path.exists():
-        return {
-            'formatted': False,
-            'file': file_path,
-            'reason': 'File does not exist'
-        }
+        return {"formatted": False, "file": file_path, "reason": "File does not exist"}
 
     suffix = path.suffix.lower()
 
@@ -183,50 +176,49 @@ def format_file(file_path: str) -> dict:
             "formatted": False,
             "file": file_path,
             "type": "documentation",
-            "message": "Skipped (documentation file)"
+            "message": "Skipped (documentation file)",
         }
 
-
     # Python files
-    if suffix == '.py':
+    if suffix == ".py":
         success, message = format_python(path)
         return {
-            'formatted': success,
-            'file': file_path,
-            'type': 'python',
-            'tool_used': 'Black + Ruff' if success else None,
-            'message': message
+            "formatted": success,
+            "file": file_path,
+            "type": "python",
+            "tool_used": "Black + Ruff" if success else None,
+            "message": message,
         }
 
     # JavaScript/TypeScript files
-    elif suffix in ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs']:
+    elif suffix in [".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"]:
         success, message = format_javascript(path)
         return {
-            'formatted': success,
-            'file': file_path,
-            'type': 'javascript',
-            'tool_used': 'Prettier' if success else None,
-            'message': message
+            "formatted": success,
+            "file": file_path,
+            "type": "javascript",
+            "tool_used": "Prettier" if success else None,
+            "message": message,
         }
 
     # Rust files
-    elif suffix == '.rs':
+    elif suffix == ".rs":
         success, message = format_rust(path)
         return {
-            'formatted': success,
-            'file': file_path,
-            'type': 'rust',
-            'tool_used': 'rustfmt' if success else None,
-            'message': message
+            "formatted": success,
+            "file": file_path,
+            "type": "rust",
+            "tool_used": "rustfmt" if success else None,
+            "message": message,
         }
 
     # Unsupported file type
     else:
         return {
-            'formatted': False,
-            'file': file_path,
-            'type': 'unsupported',
-            'message': f'No formatter for {suffix} files'
+            "formatted": False,
+            "file": file_path,
+            "type": "unsupported",
+            "message": f"No formatter for {suffix} files",
         }
 
 
@@ -238,14 +230,14 @@ def log_formatting(input_data: dict, format_result: dict) -> None:
         input_data: Hook input data
         format_result: Formatting results
     """
-    log_dir = Path(os.getenv('LAZYDEV_LOG_DIR', '.claude/data/logs'))
+    log_dir = Path(os.getenv("LAZYDEV_LOG_DIR", ".claude/data/logs"))
     log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / 'post_tool_use_format.json'
+    log_file = log_dir / "post_tool_use_format.json"
 
     # Read existing log data or initialize empty list
     if log_file.exists():
         try:
-            with open(log_file, 'r') as f:
+            with open(log_file, "r") as f:
                 log_data = json.load(f)
         except (json.JSONDecodeError, ValueError):
             log_data = []
@@ -254,17 +246,17 @@ def log_formatting(input_data: dict, format_result: dict) -> None:
 
     # Create log entry
     log_entry = {
-        'timestamp': datetime.now().isoformat(),
-        'session_id': input_data.get('session_id', 'unknown'),
-        'tool_name': input_data.get('tool_name'),
-        'format_result': format_result
+        "timestamp": datetime.now().isoformat(),
+        "session_id": input_data.get("session_id", "unknown"),
+        "tool_name": input_data.get("tool_name"),
+        "format_result": format_result,
     }
 
     # Append new data
     log_data.append(log_entry)
 
     # Write back to file
-    with open(log_file, 'w') as f:
+    with open(log_file, "w") as f:
         json.dump(log_data, f, indent=2)
 
 
@@ -274,8 +266,8 @@ def main():
         # Read JSON input from stdin
         input_data = json.load(sys.stdin)
 
-        tool_name = input_data.get('tool_name', '')
-        tool_input = input_data.get('tool_input', {})
+        tool_name = input_data.get("tool_name", "")
+        tool_input = input_data.get("tool_input", {})
 
         # Get file path
         file_path = get_file_path(tool_name, tool_input)
@@ -291,11 +283,11 @@ def main():
         log_formatting(input_data, format_result)
 
         # Output result (optional feedback to Claude)
-        if format_result['formatted']:
+        if format_result["formatted"]:
             output = {
-                'formatted': True,
-                'file': file_path,
-                'message': format_result['message']
+                "formatted": True,
+                "file": file_path,
+                "message": format_result["message"],
             }
             print(json.dumps(output))
 
@@ -315,5 +307,5 @@ def main():
         sys.exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -31,7 +31,7 @@ def check_tdd_required() -> bool:
         if os.path.exists(file_path):
             try:
                 if os.path.isfile(file_path):
-                    with open(file_path, 'r', encoding='utf-8') as f:
+                    with open(file_path, "r", encoding="utf-8") as f:
                         content = f.read()
                         if any(keyword in content for keyword in keywords):
                             return True
@@ -47,15 +47,11 @@ def run_lint() -> tuple[bool, str]:
     if os.path.exists(".ruff.toml") or os.path.exists("pyproject.toml"):
         if os.path.exists("scripts/lint.py"):
             result = subprocess.run(
-                ["python", "scripts/lint.py", "."],
-                capture_output=True,
-                text=True
+                ["python", "scripts/lint.py", "."], capture_output=True, text=True
             )
         else:
             result = subprocess.run(
-                ["ruff", "check", "."],
-                capture_output=True,
-                text=True
+                ["ruff", "check", "."], capture_output=True, text=True
             )
 
         if result.returncode != 0:
@@ -63,11 +59,7 @@ def run_lint() -> tuple[bool, str]:
 
     # Check for JavaScript (ESLint)
     if os.path.exists(".eslintrc.json") or os.path.exists(".eslintrc.js"):
-        result = subprocess.run(
-            ["npx", "eslint", "."],
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(["npx", "eslint", "."], capture_output=True, text=True)
 
         if result.returncode != 0:
             return False, f"ESLint failed:\n{result.stdout}\n{result.stderr}"
@@ -81,30 +73,28 @@ def run_type_check() -> tuple[bool, str]:
     if os.path.exists("mypy.ini") or os.path.exists("pyproject.toml"):
         if os.path.exists("scripts/type_check.py"):
             result = subprocess.run(
-                ["python", "scripts/type_check.py", "."],
-                capture_output=True,
-                text=True
+                ["python", "scripts/type_check.py", "."], capture_output=True, text=True
             )
         else:
-            result = subprocess.run(
-                ["mypy", "."],
-                capture_output=True,
-                text=True
-            )
+            result = subprocess.run(["mypy", "."], capture_output=True, text=True)
 
         if result.returncode != 0:
-            return False, f"Mypy type checking failed:\n{result.stdout}\n{result.stderr}"
+            return (
+                False,
+                f"Mypy type checking failed:\n{result.stdout}\n{result.stderr}",
+            )
 
     # Check for TypeScript (tsc)
     if os.path.exists("tsconfig.json"):
         result = subprocess.run(
-            ["npx", "tsc", "--noEmit"],
-            capture_output=True,
-            text=True
+            ["npx", "tsc", "--noEmit"], capture_output=True, text=True
         )
 
         if result.returncode != 0:
-            return False, f"TypeScript type checking failed:\n{result.stdout}\n{result.stderr}"
+            return (
+                False,
+                f"TypeScript type checking failed:\n{result.stdout}\n{result.stderr}",
+            )
 
     return True, "Type checking passed"
 
@@ -120,13 +110,11 @@ def run_tests() -> tuple[bool, str]:
             result = subprocess.run(
                 ["python", "scripts/test_runner.py", "tests/"],
                 capture_output=True,
-                text=True
+                text=True,
             )
         else:
             result = subprocess.run(
-                ["pytest", "tests/", "-v"],
-                capture_output=True,
-                text=True
+                ["pytest", "tests/", "-v"], capture_output=True, text=True
             )
 
         if result.returncode != 0:
@@ -134,11 +122,7 @@ def run_tests() -> tuple[bool, str]:
 
     # Check for JavaScript (Jest/npm test)
     if os.path.exists("package.json"):
-        result = subprocess.run(
-            ["npm", "test"],
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(["npm", "test"], capture_output=True, text=True)
 
         if result.returncode != 0:
             return False, f"Tests failed:\n{result.stdout}\n{result.stderr}"
@@ -152,22 +136,29 @@ def main():
         # Read JSON input from stdin
         input_data = json.load(sys.stdin)
 
-        tool_name = input_data.get('tool_name', '')
+        tool_name = input_data.get("tool_name", "")
 
         # Only run quality checks after Write/Edit operations
-        if tool_name not in ['Write', 'Edit']:
-            print(json.dumps({"status": "skipped", "reason": "Not a Write/Edit operation"}))
+        if tool_name not in ["Write", "Edit"]:
+            print(
+                json.dumps(
+                    {"status": "skipped", "reason": "Not a Write/Edit operation"}
+                )
+            )
             sys.exit(0)
 
         results = {
             "lint": {"status": "skipped"},
             "type": {"status": "skipped"},
-            "tests": {"status": "skipped"}
+            "tests": {"status": "skipped"},
         }
 
         # Run lint
         lint_success, lint_msg = run_lint()
-        results["lint"] = {"status": "pass" if lint_success else "fail", "message": lint_msg}
+        results["lint"] = {
+            "status": "pass" if lint_success else "fail",
+            "message": lint_msg,
+        }
 
         if not lint_success:
             print(json.dumps(results), file=sys.stderr)
@@ -175,7 +166,10 @@ def main():
 
         # Run type check
         type_success, type_msg = run_type_check()
-        results["type"] = {"status": "pass" if type_success else "fail", "message": type_msg}
+        results["type"] = {
+            "status": "pass" if type_success else "fail",
+            "message": type_msg,
+        }
 
         if not type_success:
             print(json.dumps(results), file=sys.stderr)
@@ -183,7 +177,10 @@ def main():
 
         # Run tests
         test_success, test_msg = run_tests()
-        results["tests"] = {"status": "pass" if test_success else "fail", "message": test_msg}
+        results["tests"] = {
+            "status": "pass" if test_success else "fail",
+            "message": test_msg,
+        }
 
         if not test_success:
             print(json.dumps(results), file=sys.stderr)
@@ -199,5 +196,5 @@ def main():
         sys.exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

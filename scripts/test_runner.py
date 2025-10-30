@@ -86,7 +86,10 @@ def write_log(
 def run_tests(target: str, session_id: Optional[str]) -> int:
     path_obj = Path(target)
     if not path_obj.exists():
-        print(f"⚠️ Path '{target}' does not exist. Pytest will still be invoked.", file=sys.stderr)
+        print(
+            f"⚠️ Path '{target}' does not exist. Pytest will still be invoked.",
+            file=sys.stderr,
+        )
 
     print(f"🧪 Running Pytest on {target}...")
     start = time.perf_counter()

@@ -103,7 +103,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     list_parser = subparsers.add_parser("list-issues", help="List GitHub issues")
     list_parser.add_argument("--repo", required=True)
-    list_parser.add_argument("--state", default="open", choices=["open", "closed", "all"])
+    list_parser.add_argument(
+        "--state", default="open", choices=["open", "closed", "all"]
+    )
 
     subparsers.add_parser("current-branch", help="Print the current git branch")
 

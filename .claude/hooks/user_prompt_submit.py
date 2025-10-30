@@ -43,7 +43,9 @@ logger = logging.getLogger(__name__)
 STYLE_OVERRIDE_PATTERN = re.compile(r"\[style:\s*([^\]]+)\]")
 
 # Entity mention pattern (case-insensitive for search, preserve case for display)
-ENTITY_MENTION_PATTERN = re.compile(r"\b(person|service|repo|dataset|api|team):[\w\-/\.]+", re.IGNORECASE)
+ENTITY_MENTION_PATTERN = re.compile(
+    r"\b(person|service|repo|dataset|api|team):[\w\-/\.]+", re.IGNORECASE
+)
 
 
 def get_git_context() -> dict:
@@ -53,34 +55,28 @@ def get_git_context() -> dict:
     Returns:
         Dictionary with branch and commits list
     """
-    context = {
-        'branch': None,
-        'commits': []
-    }
+    context = {"branch": None, "commits": []}
 
     try:
         # Get current branch
         result = subprocess.run(
-            ['git', 'branch', '--show-current'],
+            ["git", "branch", "--show-current"],
             capture_output=True,
             text=True,
-            timeout=2
+            timeout=2,
         )
 
         if result.returncode == 0:
-            context['branch'] = result.stdout.strip()
+            context["branch"] = result.stdout.strip()
 
         # Get recent commits (last 5)
         result = subprocess.run(
-            ['git', 'log', '--oneline', '-5'],
-            capture_output=True,
-            text=True,
-            timeout=2
+            ["git", "log", "--oneline", "-5"], capture_output=True, text=True, timeout=2
         )
 
         if result.returncode == 0:
-            commits = result.stdout.strip().split('\n')
-            context['commits'] = [c for c in commits if c]
+            commits = result.stdout.strip().split("\n")
+            context["commits"] = [c for c in commits if c]
 
     except subprocess.TimeoutExpired:
         logger.warning("Git operations timed out (2s)")
@@ -99,25 +95,28 @@ def get_current_task() -> str | None:
     Returns:
         Task identifier (e.g., "TASK-1.1: Setup OAuth2") or None
     """
-    tasks_path = Path('TASKS.md')
+    tasks_path = Path("TASKS.md")
 
     if not tasks_path.exists():
         return None
 
     try:
-        content = tasks_path.read_text(encoding='utf-8')
+        content = tasks_path.read_text(encoding="utf-8")
 
         # Look for tasks marked as "in progress" or "current"
-        lines = content.split('\n')
+        lines = content.split("\n")
         for i, line in enumerate(lines):
             # Match patterns like "- [ ] TASK-1.1:" or "### TASK-1.1:"
-            if '[ ]' in line or 'TASK-' in line:
+            if "[ ]" in line or "TASK-" in line:
                 # Check if marked as current/in-progress
-                if any(marker in line.lower() for marker in ['current', 'in progress', 'active', '🔄']):
+                if any(
+                    marker in line.lower()
+                    for marker in ["current", "in progress", "active", "🔄"]
+                ):
                     return line.strip()
 
                 # First uncompleted task
-                if '[ ]' in line and 'TASK-' in line:
+                if "[ ]" in line and "TASK-" in line:
                     return line.strip()
 
     except IOError as e:
@@ -145,22 +144,42 @@ def choose_output_style(prompt: str) -> tuple[str, float, str]:
         return (val, 1.0, "explicit override")
 
     patterns: list[tuple[str, list[str], str]] = [
-        ("table-based", ["compare", "comparison", "matrix", "pros and cons", "contrast"],
-         "comparison/matrix keywords"),
-        ("yaml-structured", ["yaml", "yml", "config", "manifest", "schema", "spec"],
-         "yaml/config/schema keywords"),
-        ("genui", ["html page", "open in browser", "ui preview", "full html"],
-         "full HTML page intent"),
-        ("html-structured", ["html", "tag", "<html", "<section", "semantic html"],
-         "HTML fragment intent"),
-        ("bullet-points", ["summary", "bullets", "quick scan", "checklist"],
-         "summary/bullets intent"),
-        ("ultra-concise", ["concise", "short", "tl;dr", "one-liner", "one line", "minimal"],
-         "ultra concise intent"),
-        ("markdown-focused", ["readme", "docs", "documentation", "markdown"],
-         "markdown/doc intent"),
-        ("tts-summary", ["tts", "audio", "voice"],
-         "tts/audio intent"),
+        (
+            "table-based",
+            ["compare", "comparison", "matrix", "pros and cons", "contrast"],
+            "comparison/matrix keywords",
+        ),
+        (
+            "yaml-structured",
+            ["yaml", "yml", "config", "manifest", "schema", "spec"],
+            "yaml/config/schema keywords",
+        ),
+        (
+            "genui",
+            ["html page", "open in browser", "ui preview", "full html"],
+            "full HTML page intent",
+        ),
+        (
+            "html-structured",
+            ["html", "tag", "<html", "<section", "semantic html"],
+            "HTML fragment intent",
+        ),
+        (
+            "bullet-points",
+            ["summary", "bullets", "quick scan", "checklist"],
+            "summary/bullets intent",
+        ),
+        (
+            "ultra-concise",
+            ["concise", "short", "tl;dr", "one-liner", "one line", "minimal"],
+            "ultra concise intent",
+        ),
+        (
+            "markdown-focused",
+            ["readme", "docs", "documentation", "markdown"],
+            "markdown/doc intent",
+        ),
+        ("tts-summary", ["tts", "audio", "voice"], "tts/audio intent"),
     ]
 
     for style, keys, reason in patterns:
@@ -203,18 +222,45 @@ def build_context_pack(max_items: int = 8) -> str:
     lines: list[str] = []
 
     EXCLUDE = {
-        '.git', '.hg', '.svn', '.bzr',
-        'node_modules', 'dist', 'build', 'out', 'coverage', 'target', 'vendor',
-        '.next', '.nuxt', '.cache', '.ruff_cache', '.mypy_cache', '.pytest_cache', '.tox',
-        '.idea', '.vscode', '.gradle', '.yarn', '.pnpm-store', '.parcel-cache',
-        'tmp', 'temp', '__pycache__', '.venv', 'venv', '.claude', 'LAZY_DEV'
+        ".git",
+        ".hg",
+        ".svn",
+        ".bzr",
+        "node_modules",
+        "dist",
+        "build",
+        "out",
+        "coverage",
+        "target",
+        "vendor",
+        ".next",
+        ".nuxt",
+        ".cache",
+        ".ruff_cache",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".tox",
+        ".idea",
+        ".vscode",
+        ".gradle",
+        ".yarn",
+        ".pnpm-store",
+        ".parcel-cache",
+        "tmp",
+        "temp",
+        "__pycache__",
+        ".venv",
+        "venv",
+        ".claude",
+        "LAZY_DEV",
     }
 
     # Top-level directories (filtered)
     try:
         top = [
-            p.name for p in Path('.').iterdir()
-            if p.is_dir() and p.name not in EXCLUDE and not p.name.startswith('.')
+            p.name
+            for p in Path(".").iterdir()
+            if p.is_dir() and p.name not in EXCLUDE and not p.name.startswith(".")
         ]
         top.sort()
         if top:
@@ -223,39 +269,44 @@ def build_context_pack(max_items: int = 8) -> str:
         pass
 
     # Language/extension counts with aggressive limits
-    exts_env = os.getenv('LAZYDEV_CONTEXT_PACK_EXTS')
+    exts_env = os.getenv("LAZYDEV_CONTEXT_PACK_EXTS")
     if exts_env:
-        exts = {e.strip().lower(): 0 for e in exts_env.split(',') if e.strip().startswith('.')}
+        exts = {
+            e.strip().lower(): 0
+            for e in exts_env.split(",")
+            if e.strip().startswith(".")
+        }
         if not exts:
             exts = {".py": 0, ".js": 0, ".ts": 0, ".tsx": 0, ".md": 0}
     else:
         exts = {".py": 0, ".js": 0, ".ts": 0, ".tsx": 0, ".md": 0}
 
-    max_files = int(os.getenv('LAZYDEV_CONTEXT_PACK_MAX_FILES', '300'))
-    max_dirs  = int(os.getenv('LAZYDEV_CONTEXT_PACK_MAX_DIRS',  '60'))
-    max_depth = int(os.getenv('LAZYDEV_CONTEXT_PACK_MAX_DEPTH', '3'))
-    budget_ms = int(os.getenv('LAZYDEV_CONTEXT_PACK_BUDGET_MS','200'))
-    deadline  = time.perf_counter() + (budget_ms / 1000.0)
+    max_files = int(os.getenv("LAZYDEV_CONTEXT_PACK_MAX_FILES", "300"))
+    max_dirs = int(os.getenv("LAZYDEV_CONTEXT_PACK_MAX_DIRS", "60"))
+    max_depth = int(os.getenv("LAZYDEV_CONTEXT_PACK_MAX_DEPTH", "3"))
+    budget_ms = int(os.getenv("LAZYDEV_CONTEXT_PACK_BUDGET_MS", "200"))
+    deadline = time.perf_counter() + (budget_ms / 1000.0)
 
     try:
         import os as _os
+
         counted_files = 0
         visited_dirs = 0
         timed_out = False
 
-        for root, dirs, files in _os.walk('.', topdown=True):
+        for root, dirs, files in _os.walk(".", topdown=True):
             # Time budget
             if time.perf_counter() > deadline:
                 timed_out = True
                 break
 
             # Compute depth and prune
-            rel = _os.path.relpath(root, '.')
-            depth = 0 if rel == '.' else len(rel.split(_os.sep))
+            rel = _os.path.relpath(root, ".")
+            depth = 0 if rel == "." else len(rel.split(_os.sep))
             if depth >= max_depth:
                 dirs[:] = []
             # Exclude heavy/hidden dirs
-            dirs[:] = [d for d in dirs if d not in EXCLUDE and not d.startswith('.')]
+            dirs[:] = [d for d in dirs if d not in EXCLUDE and not d.startswith(".")]
 
             visited_dirs += 1
             if visited_dirs > max_dirs:
@@ -263,7 +314,7 @@ def build_context_pack(max_items: int = 8) -> str:
 
             # Files in this dir
             for f in files:
-                if f.startswith('.'):
+                if f.startswith("."):
                     continue
                 sfx = _os.path.splitext(f)[1].lower()
                 if sfx in exts:
@@ -283,9 +334,13 @@ def build_context_pack(max_items: int = 8) -> str:
 
     # Last 3 commit subjects (short timeout)
     try:
-        result = subprocess.run(['git', 'log', '--oneline', '-3'], capture_output=True, text=True, timeout=1)
+        result = subprocess.run(
+            ["git", "log", "--oneline", "-3"], capture_output=True, text=True, timeout=1
+        )
         if result.returncode == 0:
-            commits = [c.strip() for c in result.stdout.strip().split('\n') if c.strip()]
+            commits = [
+                c.strip() for c in result.stdout.strip().split("\n") if c.strip()
+            ]
             for c in commits:
                 lines.append(f"Commit: {c}")
     except Exception:
@@ -327,8 +382,19 @@ def detect_memory_intent(prompt: str) -> dict:
 
     # Soft hints for durable facts
     soft_markers = [
-        "owner:", "maintainer:", "repo:", "endpoint:", "base url:", "email:",
-        "service:", "person:", "dataset:", "api:", "team:", "depends on", "owned by",
+        "owner:",
+        "maintainer:",
+        "repo:",
+        "endpoint:",
+        "base url:",
+        "email:",
+        "service:",
+        "person:",
+        "dataset:",
+        "api:",
+        "team:",
+        "depends on",
+        "owned by",
     ]
     if any(p in text for p in soft_markers):
         intents.add("durable")
@@ -366,6 +432,8 @@ def build_memory_skill_block(intents: set[str], mentions: list[str]) -> str:
         "- create_relations: {relations:[{from,to,relationType}]}\n"
         "- delete_* variants accept names/relations/observations and are safe on missing items\n"
     )
+
+
 def format_context_injection(git_context: dict, current_task: str | None) -> str:
     """
     Format context as markdown to inject into prompt.
@@ -380,26 +448,26 @@ def format_context_injection(git_context: dict, current_task: str | None) -> str
     parts = []
 
     # Git context
-    if git_context['branch'] or git_context['commits']:
-        parts.append('## Git Context')
+    if git_context["branch"] or git_context["commits"]:
+        parts.append("## Git Context")
 
-        if git_context['branch']:
+        if git_context["branch"]:
             parts.append(f"Branch: `{git_context['branch']}`")
 
-        if git_context['commits']:
-            parts.append('\nRecent commits:')
-            for commit in git_context['commits']:
+        if git_context["commits"]:
+            parts.append("\nRecent commits:")
+            for commit in git_context["commits"]:
                 parts.append(f"- {commit}")
 
     # Task context
     if current_task:
-        parts.append('\n## Current Task')
+        parts.append("\n## Current Task")
         parts.append(current_task)
 
     if parts:
-        return '\n\n---\n\n' + '\n'.join(parts) + '\n\n---'
+        return "\n\n---\n\n" + "\n".join(parts) + "\n\n---"
 
-    return ''
+    return ""
 
 
 def log_prompt(session_id: str, input_data: dict) -> None:
@@ -410,14 +478,14 @@ def log_prompt(session_id: str, input_data: dict) -> None:
         session_id: Session identifier
         input_data: Full hook input data
     """
-    log_dir = Path('logs')
+    log_dir = Path("logs")
     log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / 'user_prompt_submit.json'
+    log_file = log_dir / "user_prompt_submit.json"
 
     # Read existing log data or initialize empty list
     if log_file.exists():
         try:
-            with open(log_file, 'r') as f:
+            with open(log_file, "r") as f:
                 log_data = json.load(f)
         except (json.JSONDecodeError, ValueError):
             log_data = []
@@ -425,16 +493,13 @@ def log_prompt(session_id: str, input_data: dict) -> None:
         log_data = []
 
     # Add timestamp
-    log_entry = {
-        'timestamp': datetime.now().isoformat(),
-        **input_data
-    }
+    log_entry = {"timestamp": datetime.now().isoformat(), **input_data}
 
     # Append new data
     log_data.append(log_entry)
 
     # Write back to file
-    with open(log_file, 'w') as f:
+    with open(log_file, "w") as f:
         json.dump(log_data, f, indent=2)
 
 
@@ -446,33 +511,30 @@ def manage_session_data(session_id: str, prompt: str) -> None:
         session_id: Session identifier
         prompt: User prompt
     """
-    sessions_dir = Path('.claude/data/sessions')
+    sessions_dir = Path(".claude/data/sessions")
     sessions_dir.mkdir(parents=True, exist_ok=True)
 
-    session_file = sessions_dir / f'{session_id}.json'
+    session_file = sessions_dir / f"{session_id}.json"
 
     # Load or create session file
     if session_file.exists():
         try:
-            with open(session_file, 'r') as f:
+            with open(session_file, "r") as f:
                 session_data = json.load(f)
         except (json.JSONDecodeError, ValueError):
-            session_data = {'session_id': session_id, 'prompts': []}
+            session_data = {"session_id": session_id, "prompts": []}
     else:
-        session_data = {'session_id': session_id, 'prompts': []}
+        session_data = {"session_id": session_id, "prompts": []}
 
     # Add timestamp to prompt
-    prompt_entry = {
-        'timestamp': datetime.now().isoformat(),
-        'prompt': prompt
-    }
+    prompt_entry = {"timestamp": datetime.now().isoformat(), "prompt": prompt}
 
     # Add the new prompt
-    session_data['prompts'].append(prompt_entry)
+    session_data["prompts"].append(prompt_entry)
 
     # Save the updated session data
     try:
-        with open(session_file, 'w') as f:
+        with open(session_file, "w") as f:
             json.dump(session_data, f, indent=2)
     except IOError as e:
         logger.warning(f"Failed to write session file: {type(e).__name__}")
@@ -487,8 +549,8 @@ def main():
         input_data = json.loads(sys.stdin.read())
 
         # Extract session_id and prompt
-        session_id = input_data.get('session_id', 'unknown')
-        original_prompt = input_data.get('prompt', '')
+        session_id = input_data.get("session_id", "unknown")
+        original_prompt = input_data.get("prompt", "")
 
         # Get context
         git_context = get_git_context()
@@ -500,20 +562,22 @@ def main():
         # Lightweight output-style selection
         style_name = None
         style_conf = 0.0
-        style_reason = ''
-        if os.getenv('LAZYDEV_DISABLE_STYLE') not in {'1', 'true', 'TRUE'}:
+        style_reason = ""
+        if os.getenv("LAZYDEV_DISABLE_STYLE") not in {"1", "true", "TRUE"}:
             sel, conf, reason = choose_output_style(original_prompt)
-            if sel != 'off':
+            if sel != "off":
                 style_name, style_conf, style_reason = sel, conf, reason
-                style_block = f"\n\n## Output Style (Auto)\n\n{build_style_block(sel)}\n"
+                style_block = (
+                    f"\n\n## Output Style (Auto)\n\n{build_style_block(sel)}\n"
+                )
             else:
-                style_block = ''
+                style_block = ""
         else:
-            style_block = ''
+            style_block = ""
 
         # Lightweight context pack
-        context_pack_block = ''
-        if os.getenv('LAZYDEV_DISABLE_CONTEXT_PACK') not in {'1', 'true', 'TRUE'}:
+        context_pack_block = ""
+        if os.getenv("LAZYDEV_DISABLE_CONTEXT_PACK") not in {"1", "true", "TRUE"}:
             pack = build_context_pack()
             if pack:
                 context_pack_block = f"\n\n## Context Pack (Auto)\n\n{pack}\n"
@@ -530,12 +594,14 @@ def main():
             additional_parts.append(context_pack_block)
 
         # Auto-activate Memory Graph skill when appropriate (opt-out with env)
-        if os.getenv('LAZYDEV_DISABLE_MEMORY_SKILL') not in {'1','true','TRUE'}:
+        if os.getenv("LAZYDEV_DISABLE_MEMORY_SKILL") not in {"1", "true", "TRUE"}:
             mi = detect_memory_intent(original_prompt)
-            if mi.get('enabled'):
-                additional_parts.append(build_memory_skill_block(mi['intents'], mi['mentions']))
+            if mi.get("enabled"):
+                additional_parts.append(
+                    build_memory_skill_block(mi["intents"], mi["mentions"])
+                )
 
-        additional_context = ''.join(additional_parts)
+        additional_context = "".join(additional_parts)
 
         # Log the prompt
         log_prompt(session_id, input_data)
@@ -548,11 +614,11 @@ def main():
             "decision": None,
             "hookSpecificOutput": {
                 "hookEventName": "UserPromptSubmit",
-                "additionalContext": additional_context
+                "additionalContext": additional_context,
             },
             # Optional diagnostic metadata for transcript/debugging
             "suppressOutput": False,
-            "systemMessage": None
+            "systemMessage": None,
         }
 
         print(json.dumps(hook_output))
@@ -573,5 +639,5 @@ def main():
         sys.exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

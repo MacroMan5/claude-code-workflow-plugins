@@ -67,7 +67,9 @@ def ensure_path(path: Path) -> None:
         raise FileNotFoundError(f"Path does not exist: {path}")
 
 
-def write_log(step_results: list[StepResult], target: Path, session_id: Optional[str]) -> None:
+def write_log(
+    step_results: list[StepResult], target: Path, session_id: Optional[str]
+) -> None:
     """Persist formatter run metadata into logs/<session_id>/format.json."""
     if not session_id:
         return

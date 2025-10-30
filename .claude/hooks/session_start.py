@@ -36,11 +36,11 @@ def load_prd() -> str | None:
     Returns:
         PRD content or None
     """
-    prd_path = Path('PRD.md')
+    prd_path = Path("PRD.md")
 
     if prd_path.exists():
         try:
-            return prd_path.read_text(encoding='utf-8')
+            return prd_path.read_text(encoding="utf-8")
         except IOError as e:
             logger.warning(f"Failed to load PRD.md: {type(e).__name__}")
         except Exception as e:
@@ -56,11 +56,11 @@ def load_tasks() -> str | None:
     Returns:
         TASKS content or None
     """
-    tasks_path = Path('TASKS.md')
+    tasks_path = Path("TASKS.md")
 
     if tasks_path.exists():
         try:
-            return tasks_path.read_text(encoding='utf-8')
+            return tasks_path.read_text(encoding="utf-8")
         except IOError as e:
             logger.warning(f"Failed to load TASKS.md: {type(e).__name__}")
         except Exception as e:
@@ -78,14 +78,14 @@ def get_git_history() -> list[str]:
     """
     try:
         result = subprocess.run(
-            ['git', 'log', '--oneline', '-10'],
+            ["git", "log", "--oneline", "-10"],
             capture_output=True,
             text=True,
-            timeout=3
+            timeout=3,
         )
 
         if result.returncode == 0:
-            commits = result.stdout.strip().split('\n')
+            commits = result.stdout.strip().split("\n")
             return [c for c in commits if c]
         else:
             logger.debug(f"Git log failed with code {result.returncode}")
@@ -109,10 +109,10 @@ def get_current_branch() -> str | None:
     """
     try:
         result = subprocess.run(
-            ['git', 'branch', '--show-current'],
+            ["git", "branch", "--show-current"],
             capture_output=True,
             text=True,
-            timeout=2
+            timeout=2,
         )
 
         if result.returncode == 0:
@@ -143,7 +143,7 @@ def validate_session_id(session_id: str) -> bool:
     Returns:
         True if valid format, False otherwise
     """
-    return bool(re.match(r'^[a-zA-Z0-9_-]{1,64}$', session_id))
+    return bool(re.match(r"^[a-zA-Z0-9_-]{1,64}$", session_id))
 
 
 def initialize_session_state(session_id: str, context: dict) -> None:
@@ -159,26 +159,26 @@ def initialize_session_state(session_id: str, context: dict) -> None:
         logger.error(f"Invalid session_id format: {session_id}")
         return  # Fail silently, don't create file
 
-    sessions_dir = Path('.claude/data/sessions')
+    sessions_dir = Path(".claude/data/sessions")
     sessions_dir.mkdir(parents=True, exist_ok=True)
 
     # Now safe - session_id is validated
-    session_file = sessions_dir / f'{session_id}.json'
+    session_file = sessions_dir / f"{session_id}.json"
 
     session_data = {
-        'session_id': session_id,
-        'started_at': datetime.now().isoformat(),
-        'context': {
-            'prd_loaded': context['prd'] is not None,
-            'tasks_loaded': context['tasks'] is not None,
-            'git_history_loaded': len(context['git_history']) > 0,
-            'branch': context['branch']
+        "session_id": session_id,
+        "started_at": datetime.now().isoformat(),
+        "context": {
+            "prd_loaded": context["prd"] is not None,
+            "tasks_loaded": context["tasks"] is not None,
+            "git_history_loaded": len(context["git_history"]) > 0,
+            "branch": context["branch"],
         },
-        'prompts': []
+        "prompts": [],
     }
 
     try:
-        with open(session_file, 'w') as f:
+        with open(session_file, "w") as f:
             json.dump(session_data, f, indent=2)
     except IOError as e:
         logger.warning(f"Failed to write session file: {type(e).__name__}")
@@ -194,15 +194,15 @@ def log_session_start(session_id: str, context: dict) -> None:
         session_id: Session identifier
         context: Loaded context
     """
-    log_dir = Path(os.getenv('LAZYDEV_LOG_DIR', '.claude/data/logs'))
+    log_dir = Path(os.getenv("LAZYDEV_LOG_DIR", ".claude/data/logs"))
     log_dir.mkdir(parents=True, exist_ok=True)
 
-    log_file = log_dir / 'session_start.json'
+    log_file = log_dir / "session_start.json"
 
     # Read existing log or initialize
     if log_file.exists():
         try:
-            with open(log_file, 'r') as f:
+            with open(log_file, "r") as f:
                 log_data = json.load(f)
         except (json.JSONDecodeError, ValueError):
             log_data = []
@@ -211,20 +211,20 @@ def log_session_start(session_id: str, context: dict) -> None:
 
     # Add session start entry
     log_entry = {
-        'timestamp': datetime.now().isoformat(),
-        'session_id': session_id,
-        'context_loaded': {
-            'prd': context['prd'] is not None,
-            'tasks': context['tasks'] is not None,
-            'git_history': len(context['git_history']),
-            'branch': context['branch']
-        }
+        "timestamp": datetime.now().isoformat(),
+        "session_id": session_id,
+        "context_loaded": {
+            "prd": context["prd"] is not None,
+            "tasks": context["tasks"] is not None,
+            "git_history": len(context["git_history"]),
+            "branch": context["branch"],
+        },
     }
 
     log_data.append(log_entry)
 
     # Write back
-    with open(log_file, 'w') as f:
+    with open(log_file, "w") as f:
         json.dump(log_data, f, indent=2)
 
 
@@ -234,7 +234,7 @@ def main():
         # Read JSON input from stdin
         input_data = json.load(sys.stdin)
 
-        session_id = input_data.get('session_id', 'unknown')
+        session_id = input_data.get("session_id", "unknown")
 
         # Validate session_id
         if not validate_session_id(session_id):
@@ -243,10 +243,10 @@ def main():
 
         # Load repository context
         context = {
-            'prd': load_prd(),
-            'tasks': load_tasks(),
-            'git_history': get_git_history(),
-            'branch': get_current_branch()
+            "prd": load_prd(),
+            "tasks": load_tasks(),
+            "git_history": get_git_history(),
+            "branch": get_current_branch(),
         }
 
         # Initialize session state file
@@ -257,26 +257,26 @@ def main():
 
         # Output summary
         output = {
-            'session_id': session_id,
-            'context_loaded': {
-                'prd': context['prd'] is not None,
-                'tasks': context['tasks'] is not None,
-                'git_history': len(context['git_history']) > 0,
-                'branch': context['branch']
+            "session_id": session_id,
+            "context_loaded": {
+                "prd": context["prd"] is not None,
+                "tasks": context["tasks"] is not None,
+                "git_history": len(context["git_history"]) > 0,
+                "branch": context["branch"],
             },
-            'message': 'Session context loaded successfully'
+            "message": "Session context loaded successfully",
         }
 
         print(json.dumps(output))
 
         # Also print user-friendly message to stderr (visible in console)
-        print('\n=== LAZY-DEV-FRAMEWORK Session Started ===', file=sys.stderr)
-        print(f'Session ID: {session_id}', file=sys.stderr)
+        print("\n=== LAZY-DEV-FRAMEWORK Session Started ===", file=sys.stderr)
+        print(f"Session ID: {session_id}", file=sys.stderr)
         print(f'PRD loaded: {"✓" if context["prd"] else "✗"}', file=sys.stderr)
         print(f'TASKS loaded: {"✓" if context["tasks"] else "✗"}', file=sys.stderr)
         print(f'Git branch: {context["branch"] or "N/A"}', file=sys.stderr)
         print(f'Git history: {len(context["git_history"])} commits', file=sys.stderr)
-        print('==========================================\n', file=sys.stderr)
+        print("==========================================\n", file=sys.stderr)
 
         sys.exit(0)
 
@@ -294,5 +294,5 @@ def main():
         sys.exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
