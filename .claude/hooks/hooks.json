@@ -29,7 +29,7 @@
         ]
       },
       {
-        "matcher": "*",
+        "matcher": "Write|Edit|Task",
         "hooks": [
           {
             "type": "command",
