@@ -209,13 +209,6 @@ LAZY_DEV synthesizes patterns from all these sources into a cohesive framework:
 
 ---
 
-## License
-
-LAZY_DEV Framework is released under the **MIT License**.
-
-All credited projects above use compatible open-source licenses (primarily MIT).
-
----
 
 ## Contributing
 
@@ -227,8 +220,3 @@ If you see your work referenced here and would like:
 
 Please open an issue at: https://github.com/MacroMan5/claude-code-workflow-plugins/issues
 
----
-
-**LAZY_DEV** - Standing on the shoulders of giants 🚀
-
-Built with inspiration from the Claude Code community.

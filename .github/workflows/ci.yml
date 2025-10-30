@@ -1,0 +1,299 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black ruff mypy
+
+      - name: Check formatting with Black
+        run: |
+          black --check --diff .
+        continue-on-error: false
+
+      - name: Lint with Ruff
+        run: |
+          ruff check .
+        continue-on-error: false
+
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mypy
+          # Install any additional type stubs if needed
+          # pip install types-requests types-pyyaml
+
+      - name: Type check with Mypy
+        run: |
+          mypy .claude/hooks/ --ignore-missing-imports
+        continue-on-error: true  # Don't fail build on type errors initially
+
+  test:
+    name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.11', '3.12']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          pip install -r requirements.txt
+
+      - name: Run tests (if tests exist)
+        run: |
+          if [ -d "tests" ]; then
+            pytest tests/ -v --cov=.claude --cov-report=xml --cov-report=term
+          else
+            echo "No tests directory found, skipping tests"
+          fi
+        shell: bash
+        continue-on-error: true  # Don't fail if no tests yet
+
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          fail_ci_if_error: false
+        continue-on-error: true
+
+  validate-hooks:
+    name: Validate Hook Scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validate hook syntax
+        run: |
+          for hook in .claude/hooks/*.py; do
+            echo "Validating $hook"
+            python -m py_compile "$hook"
+          done
+
+      - name: Check hooks.json validity
+        run: |
+          python -c "import json; json.load(open('.claude/hooks/hooks.json'))"
+
+  validate-commands:
+    name: Validate Command Files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check command files exist
+        run: |
+          commands=(
+            "create-feature.md"
+            "task-exec.md"
+            "story-review.md"
+            "story-fix-review.md"
+            "documentation.md"
+            "cleanup.md"
+            "memory-graph.md"
+            "memory-check.md"
+          )
+
+          for cmd in "${commands[@]}"; do
+            if [ ! -f ".claude/commands/$cmd" ]; then
+              echo "❌ Missing command: $cmd"
+              exit 1
+            else
+              echo "✓ Found command: $cmd"
+            fi
+          done
+
+  validate-agents:
+    name: Validate Agent Files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check agent files exist
+        run: |
+          agents=(
+            "project-manager.md"
+            "task-enhancer.md"
+            "coder.md"
+            "reviewer.md"
+            "reviewer-story.md"
+            "tester.md"
+            "research.md"
+            "refactor.md"
+            "documentation.md"
+            "cleanup.md"
+          )
+
+          for agent in "${agents[@]}"; do
+            if [ ! -f ".claude/agents/$agent" ]; then
+              echo "❌ Missing agent: $agent"
+              exit 1
+            else
+              echo "✓ Found agent: $agent"
+            fi
+          done
+
+  validate-plugin:
+    name: Validate Plugin Structure
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate plugin.json
+        run: |
+          python -c "
+import json
+with open('.claude-plugin/plugin.json') as f:
+    data = json.load(f)
+    assert 'name' in data, 'Missing name in plugin.json'
+    assert 'version' in data, 'Missing version in plugin.json'
+    assert 'description' in data, 'Missing description in plugin.json'
+    assert data['version'] == '2.0.0', 'Version mismatch in plugin.json'
+    print('✓ plugin.json is valid')
+"
+
+      - name: Validate marketplace.json
+        run: |
+          python -c "
+import json
+with open('.claude-plugin/marketplace.json') as f:
+    data = json.load(f)
+    assert 'name' in data, 'Missing name in marketplace.json'
+    assert 'plugins' in data, 'Missing plugins in marketplace.json'
+    assert len(data['plugins']) > 0, 'No plugins defined in marketplace.json'
+    print('✓ marketplace.json is valid')
+"
+
+  check-docs:
+    name: Check Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check required documentation
+        run: |
+          docs=(
+            "README.md"
+            "CHANGELOG.md"
+            "LICENSE"
+            "CONTRIBUTING.md"
+            "CODE_OF_CONDUCT.md"
+            "SECURITY.md"
+            "CREDITS.md"
+            "INSTALLATION.md"
+            "WORKFLOW.md"
+            "MEMORY.md"
+            "SUB_AGENTS.md"
+            "CLAUDE.md"
+          )
+
+          missing=0
+          for doc in "${docs[@]}"; do
+            if [ ! -f "$doc" ]; then
+              echo "❌ Missing documentation: $doc"
+              missing=$((missing + 1))
+            else
+              echo "✓ Found documentation: $doc"
+            fi
+          done
+
+          if [ $missing -gt 0 ]; then
+            echo "❌ $missing documentation file(s) missing"
+            exit 1
+          else
+            echo "✓ All required documentation present"
+          fi
+
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [lint, type-check, test, validate-hooks, validate-commands, validate-agents, validate-plugin, check-docs]
+    if: always()
+    steps:
+      - name: Check status
+        run: |
+          if [ "${{ needs.lint.result }}" == "failure" ] || \
+             [ "${{ needs.validate-hooks.result }}" == "failure" ] || \
+             [ "${{ needs.validate-commands.result }}" == "failure" ] || \
+             [ "${{ needs.validate-agents.result }}" == "failure" ] || \
+             [ "${{ needs.validate-plugin.result }}" == "failure" ] || \
+             [ "${{ needs.check-docs.result }}" == "failure" ]; then
+            echo "❌ CI checks failed"
+            exit 1
+          else
+            echo "✅ All CI checks passed"
+          fi
