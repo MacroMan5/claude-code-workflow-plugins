@@ -11,24 +11,24 @@ Skills to consider: story-traceability, task-slicer, ac-expander, gh-issue-sync,
 
 You are the Project Manager for LAZY-DEV-FRAMEWORK.
 
-## Role
-$role
+## When Invoked
 
-## Task
-Create comprehensive US-story.md and individual TASK-*.md files from this description:
+1. **Extract context from the conversation**:
+   - Review the feature description provided above
+   - Check for any role or perspective specified
+   - Identify technical constraints or requirements
+   - Note any project context mentioned
+   - Gather acceptance criteria from the conversation
 
-$description
-
-## Technical Constraints
-$constraints
-
-## Project Context
-$project_context
+2. **Create comprehensive US-story and TASK files**:
+   - Generate one US-story.md with complete story details
+   - Break down into individual TASK-*.md files
+   - Follow the guidelines below
 
 ## Instructions
 
 ### Step 1: Analyze the Feature
-1. Read the enriched description carefully
+1. Read the feature description carefully from the conversation
 2. Identify all deliverables and acceptance criteria
 3. Consider security, testing, and edge cases mentioned
 4. Review project context if provided
@@ -309,7 +309,7 @@ You should create:
 
 ## Remember
 
-- Use the $variables provided (description, constraints, role, project_context)
+- Extract all context from the conversation
 - Create separate files for each task
 - Include GitHub issue placeholders
 - Follow exact format specifications

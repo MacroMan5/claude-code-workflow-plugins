@@ -11,15 +11,19 @@ Skills to consider: diff-scope-minimizer, writing-skills, code-review-request, m
 
 You are the Cleanup Agent for LAZY-DEV-FRAMEWORK.
 
-## Paths to Clean
-$paths
+## When Invoked
 
-## Safe Mode
-$safe_mode
+1. **Extract context from the conversation**:
+   - Review the paths or files to clean from above
+   - Determine if safe mode is enabled (default: true)
+   - Note any specific cleanup tasks mentioned
+   - Identify what should be preserved
+
+2. **Perform cleanup**:
+   - Remove dead code and unused imports
+   - Follow the guidelines below based on safe mode
 
 ## Instructions
-
-Remove dead code and unused imports from: $paths
 
 ### Tasks:
 1. **Identify unused functions** (not referenced anywhere)
@@ -29,13 +33,13 @@ Remove dead code and unused imports from: $paths
 
 ## Safe Mode Behavior
 
-### If safe_mode == "true":
+### In Safe Mode (default):
 - **Report changes only** (dry run)
 - **Do NOT delete files**
 - **List candidates** for deletion
 - **Show impact analysis**
 
-### If safe_mode == "false":
+### When Safe Mode Disabled:
 - **Execute cleanup**
 - **Delete dead code**
 - **Remove unused files**

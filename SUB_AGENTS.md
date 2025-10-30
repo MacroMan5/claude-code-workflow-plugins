@@ -1,8 +1,8 @@
-# LAZY_DEV Framework - Sub-Agent Definitions
+# LAZY_DEV Framework - Sub-Agent Registry
 
-Central registry of all sub-agents with their input/output formats, variable names, and invocation patterns.
+Central registry of all sub-agents with their purposes, tools, and usage patterns.
 
-**Version**: 1.0.0
+**Version**: 2.0.0
 **Last Updated**: 2025-10-29
 **Purpose**: Single source of truth for all sub-agent specifications
 
@@ -10,31 +10,21 @@ Central registry of all sub-agents with their input/output formats, variable nam
 
 ## Overview
 
-All sub-agents are invoked via Claude Code's Task tool with `subagent_type="general-purpose"`. Each agent is defined in a markdown file in `.claude/agents/` with parametric variables using `$variable` syntax.
+LAZY_DEV uses 10 specialized sub-agents that operate on conversation context. Each agent extracts what it needs from the conversation naturally, following Anthropic's best practices for agent design.
 
-**Variable Substitution Pattern**:
-```python
-from string import Template
-from pathlib import Path
-
-# Load template
-template_text = Path(".claude/agents/agent-name.md").read_text()
-
-# Substitute variables
-prompt = Template(template_text).substitute({
-    "variable1": "value1",
-    "variable2": "value2"
-})
-
-# Invoke via Task tool
-# Task(subagent_type="general-purpose", prompt=prompt)
-```
+**How Agents Work**:
+- Agents are invoked via Claude Code's Task tool with `subagent_type="general-purpose"`
+- Each agent is defined in a markdown file in `.claude/agents/`
+- Agents extract context from the conversation (no explicit variable passing)
+- Commands provide context through conversation, then spawn agents
+- Agents read context naturally and produce results
 
 **Key Principles**:
-- Use `Template.substitute()` for required variables (raises KeyError if missing)
-- Use `Template.safe_substitute()` for optional variables (leaves $var unchanged if missing)
-- Always validate variable values before substitution
-- Document all variables with types and examples
+- No variable substitution - agents read conversation context
+- Follows Anthropic best practices for Claude Code agents
+- Each agent has a clear, focused purpose
+- Agents use appropriate tools for their tasks
+- Model selection based on task complexity (Haiku vs Sonnet)
 
 ---
 
@@ -53,6 +43,35 @@ prompt = Template(template_text).substitute({
 
 ---
 
+## Agent Invocation Pattern
+
+All agents follow the same invocation pattern:
+
+```python
+# 1. Command provides context in conversation
+# 2. Command spawns agent via Task tool
+# 3. Agent reads context from conversation
+# 4. Agent produces results
+```
+
+Example from a command:
+```markdown
+You are working with the following feature brief:
+
+"Add OAuth2 authentication with Google provider"
+
+Technical constraints:
+- Python 3.11+
+- FastAPI framework
+- PostgreSQL database
+
+Create a comprehensive USER-STORY.md and individual TASK files for this feature.
+```
+
+The agent prompt references the conversation context, and the agent extracts what it needs.
+
+---
+
 ## 1. Project-Manager Agent
 
 **Purpose**: Create comprehensive USER-STORY and individual TASK files from feature briefs.
@@ -63,19 +82,14 @@ prompt = Template(template_text).substitute({
 
 **Tools**: Read, Write, Grep, Glob
 
-### Input Variables
+**When to Use**:
+- Start of new feature development
+- Breaking down complex features into tasks
+- Creating project structure and task files
 
-| Variable | Type | Required | Description | Example |
-|----------|------|----------|-------------|---------|
-| `$role` | string | Yes | Target developer role | "full-stack developer" |
-| `$description` | string | Yes | Feature brief (enriched by pre-prompt hook) | "Add OAuth2 authentication with Google provider" |
-| `$constraints` | string | Yes | Technical constraints and requirements | "Python 3.11+, FastAPI, PostgreSQL, JWT tokens" |
-| `$project_context` | string | No | Additional project context | "Existing auth system uses JWT, new OAuth should integrate with it" |
-
-### Output Format
-
-**Files Created**:
-1. `USER-STORY.md` - Comprehensive user story with:
+**What It Does**:
+1. Analyzes feature brief from conversation
+2. Creates USER-STORY.md with:
    - Story ID (format: `US-YYYYMMDD-XXX`)
    - Description and acceptance criteria
    - Security considerations checklist
@@ -83,8 +97,7 @@ prompt = Template(template_text).substitute({
    - Technical dependencies
    - Architecture impact
    - Definition of done
-
-2. Multiple `TASK-*.md` files (one per task):
+3. Creates multiple TASK-*.md files (one per task):
    - Task ID (format: `TASK-[StoryID]-[Number]`)
    - Description and acceptance criteria
    - Effort estimate (S/M/L)
@@ -94,29 +107,7 @@ prompt = Template(template_text).substitute({
    - Testing checklist
    - Quality gates
 
-### Example Invocation
-
-```python
-from string import Template
-from pathlib import Path
-
-# Load template
-template = Path(".claude/agents/project-manager.md").read_text()
-
-# Substitute variables
-prompt = Template(template).substitute(
-    role="full-stack developer",
-    description=enriched_user_input,  # Already enriched by pre-prompt hook
-    constraints="Python 3.11+, FastAPI, PostgreSQL, pytest",
-    project_context="Existing auth system uses JWT tokens"
-)
-
-# Invoke via Task tool
-# Task invocation would happen here with the substituted prompt
-```
-
-### Success Criteria
-
+**Success Criteria**:
 - USER-STORY.md exists with complete story structure
 - Multiple TASK-*.md files created (one per atomic task)
 - All acceptance criteria covered by tasks
@@ -124,8 +115,7 @@ prompt = Template(template).substitute(
 - Security and testing checklists comprehensive
 - Each task is independently implementable
 
-### Notes
-
+**Notes**:
 - Creates separate files for each task (NOT a single TASKS.md)
 - Tasks should be 2-4 hours each (atomic and testable)
 - Story ID format: US-YYYYMMDD-XXX (e.g., US-20251026-001)
@@ -144,79 +134,26 @@ prompt = Template(template).substitute(
 
 **Tools**: Read, Write, Edit, Grep, Glob
 
-### Input Variables
+**When to Use**:
+- After project-manager creates initial tasks
+- Before starting implementation (to add context)
+- When tasks need codebase-specific guidance
 
-| Variable | Type | Required | Description | Example |
-|----------|------|----------|-------------|---------|
-| `$tasks_dir` | string | Yes | Directory containing TASK-*.md files | "./project-management/US-STORY/US-3.4-oauth2/TASKS" |
-| `$story_file` | string | Yes | Path to US-story.md | "./project-management/US-STORY/US-3.4-oauth2/US-story.md" |
-| `$project_root` | string | Yes | Root directory of project | "." |
-| `$codebase_focus` | string | No | Specific directories to focus on | "src/auth" (default: "*") |
+**What It Does**:
+1. Reads existing TASK files from conversation context
+2. Researches codebase for relevant patterns
+3. Enhances each TASK file with:
+   - Technical overview (how task fits into architecture)
+   - Relevant files to reference
+   - Files to create/modify (with line numbers)
+   - Code patterns from codebase (10-30 line snippets)
+   - Dependencies (existing + new)
+   - Architecture integration
+   - Testing strategy
+   - Security considerations
+   - Implementation tips (do's/don'ts, gotchas)
 
-### Output Format
-
-**Files Modified**: Each TASK-*.md file in `$tasks_dir` gets enhanced with:
-
-```markdown
----
-
-## Technical Context (Added by Task Enhancer)
-
-### Overview
-[2-3 sentence summary of how this task fits into codebase architecture]
-
-### Relevant Files to Reference
-- `path/to/similar_feature.py` - [What to learn from this]
-- `path/to/base_class.py` - [Base class to inherit from]
-
-### Files to Create/Modify
-**New Files:**
-- `src/features/new_feature.py` - [Main implementation]
-
-**Files to Modify:**
-- `src/main.py:45` - [Add import and initialization]
-
-### Code Patterns from Codebase
-[10-30 line code snippets with file paths]
-
-### Dependencies
-- `requests==2.31.0` - HTTP client (already in requirements.txt)
-- `NEW: pytest-mock==3.12.0` - Mocking for tests (ADD)
-
-### Architecture Integration
-[Component relationship diagram]
-
-### Testing Strategy
-[Existing test patterns to follow]
-
-### Security Considerations
-[Codebase-specific security patterns]
-
-### Implementation Tips
-- Do's and Don'ts
-- Common gotchas
-```
-
-### Example Invocation
-
-```python
-from string import Template
-from pathlib import Path
-
-template = Path(".claude/agents/task-enhancer.md").read_text()
-
-prompt = Template(template).substitute(
-    tasks_dir="./project-management/US-STORY/US-3.4-oauth2/TASKS",
-    story_file="./project-management/US-STORY/US-3.4-oauth2/US-story.md",
-    project_root=".",
-    codebase_focus="src/auth"  # Optional
-)
-
-# Invoke via Task tool
-```
-
-### Success Criteria
-
+**Success Criteria**:
 - Each task has actionable technical context
 - At least 3 relevant files identified per task
 - At least 2 code pattern examples with file paths
@@ -225,8 +162,7 @@ prompt = Template(template).substitute(
 - Architecture integration clear
 - Testing strategy aligned with project conventions
 
-### Notes
-
+**Notes**:
 - Runs AFTER project-manager creates initial tasks
 - Reads codebase extensively but only writes/edits task files
 - Provides concrete, actionable information (not vague suggestions)
@@ -245,59 +181,28 @@ prompt = Template(template).substitute(
 
 **Tools**: Read, Write, Edit, Bash, Grep, Glob
 
-### Input Variables
+**When to Use**:
+- Implementing individual tasks
+- Writing production code
+- Creating tests alongside implementation
 
-| Variable | Type | Required | Description | Example |
-|----------|------|----------|-------------|---------|
-| `$task` | string | Yes | Task description and requirements | "Implement Google OAuth2 provider inheriting from OAuthProvider base class" |
-| `$research` | string | No | Research context from research agent | "Google OAuth endpoints: authorization URL, token URL, user info URL" (default: "No research provided") |
-| `$acceptance_criteria` | string | Yes | Acceptance criteria from task file | "- [ ] Implements OAuthProvider interface\n- [ ] Handles errors\n- [ ] 80% test coverage" |
-
-### Output Format
-
-**Files Created/Modified**:
-1. Implementation file(s) with:
+**What It Does**:
+1. Reads task description and acceptance criteria from conversation
+2. Optionally reads research context if provided
+3. Implements code with:
    - Type hints on all functions (Python 3.11+)
    - Google-style docstrings (Args, Returns, Raises, Examples)
    - Comprehensive error handling
    - Input validation
    - Security best practices
-
-2. Test file(s) with:
-   - `test_` prefix
+4. Creates test files with:
    - Unit tests for all functions
    - Integration tests for workflows
    - Edge case coverage (null, empty, boundary)
    - Mocked external dependencies
    - Minimum 80% coverage
 
-3. Updated documentation (if applicable)
-
-### Example Invocation
-
-```python
-from string import Template
-from pathlib import Path
-
-template = Path(".claude/agents/coder.md").read_text()
-
-# With research context
-prompt = Template(template).substitute(
-    task="Implement Google OAuth2 provider",
-    research="Google OAuth endpoints: https://accounts.google.com/o/oauth2/v2/auth for authorization",
-    acceptance_criteria="- [ ] Implements OAuthProvider interface\n- [ ] Returns access token"
-)
-
-# Without research (optional variable)
-prompt = Template(template).safe_substitute(
-    task="Implement Google OAuth2 provider",
-    acceptance_criteria="- [ ] Implements OAuthProvider interface"
-    # research will remain as "$research" or be omitted
-)
-```
-
-### Success Criteria
-
+**Success Criteria**:
 - All acceptance criteria met
 - Code is clean, readable, and well-structured
 - Type hints on all functions
@@ -307,56 +212,7 @@ prompt = Template(template).safe_substitute(
 - Tests written with >= 80% coverage
 - Tests pass (pytest succeeds)
 
-### Code Quality Requirements
-
-```python
-# Example of expected code quality
-from typing import Optional
-
-def authenticate_user(username: str, password: str) -> Optional[str]:
-    """
-    Authenticate user and return JWT token.
-
-    Args:
-        username: User's username
-        password: User's password (will be hashed)
-
-    Returns:
-        JWT token if auth succeeds, None otherwise
-
-    Raises:
-        ValueError: If username or password empty
-
-    Examples:
-        >>> authenticate_user("user", "pass123")
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-    """
-    if not username or not password:
-        raise ValueError("Username and password required")
-
-    # Implementation...
-```
-
-### Testing Requirements
-
-```python
-# Example test structure
-import pytest
-from module import function_to_test
-
-def test_function_success():
-    """Test successful execution."""
-    result = function_to_test("valid input")
-    assert result is not None
-
-def test_function_empty_input():
-    """Test with empty input."""
-    with pytest.raises(ValueError):
-        function_to_test("")
-```
-
-### Notes
-
+**Notes**:
 - Python 3.11+ type hints required
 - Google-style docstrings mandatory
 - Security is paramount (input validation, no secrets in code)
@@ -375,49 +231,25 @@ def test_function_empty_input():
 
 **Tools**: Read, Grep, Glob, Bash (git diff, git log)
 
-### Input Variables
+**When to Use**:
+- After implementing a task
+- Before committing code
+- As part of quality pipeline
 
-| Variable | Type | Required | Description | Example |
-|----------|------|----------|-------------|---------|
-| `$code` | string | Yes | Code to review (file paths or diffs) | "src/auth/google_provider.py\ntests/test_google_provider.py" |
-| `$criteria` | string | Yes | Acceptance criteria to verify | "- [ ] Implements OAuthProvider\n- [ ] Handles errors" |
-| `$standards` | string | No | Coding standards to enforce | "PEP 8, Type hints, 80% coverage" (default: standard) |
+**What It Does**:
+1. Reads code files and acceptance criteria from conversation
+2. Reviews code against multiple dimensions:
+   - Code quality (type hints, docstrings, naming, complexity)
+   - Security (input validation, OWASP Top 10)
+   - Testing (coverage, edge cases, test quality)
+   - Functionality (meets acceptance criteria, edge cases)
+   - Documentation (docstrings, README, API docs)
+3. Returns structured JSON response:
+   - Status: APPROVED or REQUEST_CHANGES
+   - Issues list (severity, file, line, description, fix)
+   - Summary of overall assessment
 
-### Output Format
-
-**JSON Response**:
-```json
-{
-  "status": "APPROVED" | "REQUEST_CHANGES",
-  "issues": [
-    {
-      "severity": "CRITICAL" | "WARNING" | "SUGGESTION",
-      "file": "path/to/file.py",
-      "line": 42,
-      "description": "What's wrong",
-      "fix": "How to fix it"
-    }
-  ],
-  "summary": "Overall assessment"
-}
-```
-
-### Example Invocation
-
-```python
-from string import Template
-from pathlib import Path
-
-template = Path(".claude/agents/reviewer.md").read_text()
-
-prompt = Template(template).safe_substitute(
-    code="src/auth/google_provider.py\ntests/test_google_provider.py",
-    criteria="- [ ] Implements OAuthProvider interface\n- [ ] Handles token exchange errors\n- [ ] 80% test coverage",
-    standards="PEP 8, Type hints, Google docstrings, 80% coverage"
-)
-```
-
-### Review Checklist
+**Review Dimensions**:
 
 **Code Quality**:
 - Type hints on all functions
@@ -444,18 +276,11 @@ prompt = Template(template).safe_substitute(
 - Performance acceptable
 - No regressions
 
-**Documentation**:
-- Docstrings updated
-- README updated if needed
-- API changes documented
-
-### Decision Criteria
-
+**Decision Criteria**:
 - **APPROVED**: No critical issues, warnings are minor
 - **REQUEST_CHANGES**: Critical issues OR multiple warnings
 
-### Notes
-
+**Notes**:
 - Reviews at task level (individual implementation)
 - Focuses on code quality and security
 - Returns structured JSON for automated processing
@@ -473,69 +298,29 @@ prompt = Template(template).safe_substitute(
 
 **Tools**: Read, Grep, Glob, Bash
 
-### Input Variables
+**When to Use**:
+- After all tasks in a story are complete
+- Before creating pull request
+- To verify story-level integration
 
-| Variable | Type | Required | Description | Example |
-|----------|------|----------|-------------|---------|
-| `$story_id` | string | Yes | Story identifier | "US-3.4" or "US-20251026-001" |
-| `$story_file` | string | Yes | Path to US-story.md | "./project-management/US-STORY/US-3.4-oauth2/US-story.md" |
-| `$tasks_dir` | string | Yes | Directory containing completed tasks | "./project-management/US-STORY/US-3.4-oauth2/TASKS" |
-| `$branch_name` | string | Yes | Git branch name | "feat/US-3.4-oauth2-authentication" |
-| `$standards` | string | No | Coding standards | "PEP 8, Type hints, 80% coverage, Google docstrings" |
+**What It Does**:
+1. Reads story file, task files, and branch from conversation
+2. Reviews entire story for:
+   - Story completeness (all acceptance criteria met)
+   - Code quality consistency across tasks
+   - Integration (tasks work together cohesively)
+   - Testing (all tests pass, adequate coverage)
+   - Documentation (APIs documented, README updated)
+   - Security (input validation, vulnerability prevention)
+3. Returns JSON response with:
+   - Status: APPROVED or REQUEST_CHANGES
+   - Issues list (per task)
+   - Summary of entire story
+   - Tasks reviewed
+   - Report path (if REQUEST_CHANGES)
+4. If REQUEST_CHANGES, creates detailed US-{story_id}_REPORT.md
 
-### Output Format
-
-**JSON Response**:
-```json
-{
-  "status": "APPROVED" | "REQUEST_CHANGES",
-  "issues": [
-    {
-      "severity": "CRITICAL" | "WARNING" | "SUGGESTION",
-      "task_id": "TASK-1.1",
-      "file": "path/to/file.py",
-      "line": 42,
-      "description": "Clear description of what's wrong",
-      "fix": "Specific guidance on how to fix it"
-    }
-  ],
-  "summary": "Overall assessment of entire story",
-  "tasks_reviewed": ["TASK-1.1", "TASK-1.2", "TASK-1.3"],
-  "report_path": "US-3.4_REPORT.md"
-}
-```
-
-**If REQUEST_CHANGES**: Creates detailed report file `US-{story_id}_REPORT.md` with:
-- Executive summary
-- Acceptance criteria status (checklist)
-- Tasks reviewed (status per task)
-- Critical issues (MUST FIX)
-- Warnings (SHOULD FIX)
-- Suggestions (CONSIDER)
-- Integration analysis
-- Test results
-- Documentation review
-- Security review
-- Recommendations
-
-### Example Invocation
-
-```python
-from string import Template
-from pathlib import Path
-
-template = Path(".claude/agents/reviewer-story.md").read_text()
-
-prompt = Template(template).safe_substitute(
-    story_id="US-3.4",
-    story_file="./project-management/US-STORY/US-3.4-oauth2/US-story.md",
-    tasks_dir="./project-management/US-STORY/US-3.4-oauth2/TASKS",
-    branch_name="feat/US-3.4-oauth2-authentication",
-    standards="PEP 8, Type hints, 80% coverage, Google docstrings"
-)
-```
-
-### Review Responsibilities
+**Review Responsibilities**:
 
 **Story Completeness**:
 - All acceptance criteria from US-story.md met
@@ -572,7 +357,7 @@ prompt = Template(template).safe_substitute(
 - No XSS vulnerabilities
 - Sensitive data properly handled
 
-### Decision Criteria
+**Decision Criteria**:
 
 **APPROVED**:
 - All checklist items pass
@@ -587,8 +372,7 @@ prompt = Template(template).safe_substitute(
 - Integration problems
 - Missing acceptance criteria
 
-### Notes
-
+**Notes**:
 - Reviews at STORY level (all tasks together)
 - Focuses on integration and cohesion
 - Creates detailed report if requesting changes
@@ -607,76 +391,28 @@ prompt = Template(template).safe_substitute(
 
 **Tools**: Read, Write, Bash (pytest, coverage)
 
-### Input Variables
+**When to Use**:
+- Generating tests for existing code
+- Adding test coverage
+- Creating test suites for new features
 
-| Variable | Type | Required | Description | Example |
-|----------|------|----------|-------------|---------|
-| `$code` | string | Yes | Code to test (file paths) | "src/auth/google_provider.py" |
-| `$coverage_target` | number | Yes | Minimum coverage percentage | 80 |
+**What It Does**:
+1. Reads code files from conversation context
+2. Analyzes code structure and logic
+3. Generates comprehensive test files with:
+   - `tests/test_*.py` naming convention
+   - pytest framework usage
+   - Mocked external dependencies
+   - Clear, descriptive test names
+   - Arrange-Act-Assert pattern
+   - Coverage >= target percentage
+4. Tests cover:
+   - Success cases
+   - Edge cases (null, empty, boundary values)
+   - Error cases (exceptions, invalid inputs)
+   - Integration scenarios
 
-### Output Format
-
-**Files Created**: Test files with:
-- `tests/test_*.py` naming convention
-- pytest framework usage
-- Mocked external dependencies
-- Clear, descriptive test names
-- Arrange-Act-Assert pattern
-- Coverage >= `$coverage_target%`
-
-**Test Structure**:
-```python
-import pytest
-from unittest.mock import Mock, patch
-from module import function_to_test
-
-class TestFunctionName:
-    """Tests for function_to_test."""
-
-    def test_success_case(self):
-        """Test successful execution."""
-        # Arrange
-        input_data = "valid input"
-
-        # Act
-        result = function_to_test(input_data)
-
-        # Assert
-        assert result == expected_output
-
-    def test_empty_input(self):
-        """Test with empty input."""
-        with pytest.raises(ValueError):
-            function_to_test("")
-
-    def test_null_input(self):
-        """Test with None input."""
-        with pytest.raises(TypeError):
-            function_to_test(None)
-
-    @patch('module.external_api')
-    def test_with_mocked_dependency(self, mock_api):
-        """Test with mocked external API."""
-        mock_api.return_value = {"status": "ok"}
-        result = function_to_test("input")
-        assert result is not None
-```
-
-### Example Invocation
-
-```python
-from string import Template
-from pathlib import Path
-
-template = Path(".claude/agents/tester.md").read_text()
-
-prompt = Template(template).substitute(
-    code="src/auth/google_provider.py",
-    coverage_target=80
-)
-```
-
-### Test Requirements
+**Test Requirements**:
 
 **Coverage**:
 - Unit tests for all functions
@@ -692,18 +428,16 @@ prompt = Template(template).substitute(
 - Concurrent access (if applicable)
 - Resource exhaustion
 
-### Success Criteria
-
+**Success Criteria**:
 - Test files created in `tests/` directory
 - Test naming follows `test_*` convention
 - All tests use pytest framework
 - External dependencies are mocked
-- Coverage meets or exceeds `$coverage_target%`
+- Coverage meets or exceeds target
 - Tests follow Arrange-Act-Assert pattern
 - Test names are clear and descriptive
 
-### Notes
-
+**Notes**:
 - Uses Haiku model (cost-efficient for well-defined task)
 - Follows pytest conventions
 - Mocks external dependencies (APIs, databases)
@@ -722,92 +456,31 @@ prompt = Template(template).substitute(
 
 **Tools**: Read, WebSearch, WebFetch
 
-### Input Variables
+**When to Use**:
+- Implementing unfamiliar technologies
+- Researching API documentation
+- Finding best practices and patterns
 
-| Variable | Type | Required | Description | Example |
-|----------|------|----------|-------------|---------|
-| `$keywords` | string | Yes | Research keywords/topics | "Google OAuth2 API Python implementation" |
-| `$depth` | string | Yes | Research depth level | "quick" or "comprehensive" |
+**What It Does**:
+1. Reads research keywords and depth from conversation
+2. Searches official documentation and community resources
+3. Produces markdown research document with:
+   - Official documentation references
+   - Key APIs/methods with examples
+   - Best practices
+   - Common pitfalls and solutions
+   - Code examples (basic and advanced)
+   - Recommendations based on findings
 
-### Output Format
+**Research Depth Levels**:
 
-**Markdown Research Document**:
-```markdown
-# Research: $keywords
-
-## Official Documentation
-- Source: [URL]
-- Version: [Version number]
-- Last updated: [Date]
-
-## Key Points
-- Point 1
-- Point 2
-
-## API Reference
-### Class/Function Name
-- Purpose: ...
-- Parameters: ...
-- Returns: ...
-- Example:
-```code
-...
-```
-
-## Best Practices
-1. Practice 1
-2. Practice 2
-
-## Common Pitfalls
-- Pitfall 1: Description and how to avoid
-- Pitfall 2: Description and how to avoid
-
-## Code Examples
-```code
-# Example 1: Basic usage
-...
-
-# Example 2: Advanced usage
-...
-```
-
-## Recommendations
-Based on research, recommend:
-- Approach A vs Approach B
-- Libraries to use
-- Patterns to follow
-```
-
-### Example Invocation
-
-```python
-from string import Template
-from pathlib import Path
-
-template = Path(".claude/agents/research.md").read_text()
-
-# Quick research
-prompt = Template(template).substitute(
-    keywords="Google OAuth2 API Python",
-    depth="quick"
-)
-
-# Comprehensive research
-prompt = Template(template).substitute(
-    keywords="FastAPI OAuth2 implementation best practices",
-    depth="comprehensive"
-)
-```
-
-### Research Depth Levels
-
-**Quick Research** (`depth="quick"`):
+**Quick Research**:
 - Official documentation only
 - Key APIs/methods
 - Basic usage examples
 - Common gotchas
 
-**Comprehensive Research** (`depth="comprehensive"`):
+**Comprehensive Research**:
 - Official documentation
 - Community best practices
 - Multiple code examples
@@ -816,8 +489,7 @@ prompt = Template(template).substitute(
 - Security implications
 - Alternative approaches
 
-### Success Criteria
-
+**Success Criteria**:
 - Official documentation sourced and cited
 - Key APIs/methods documented with examples
 - Best practices clearly listed
@@ -825,13 +497,12 @@ prompt = Template(template).substitute(
 - Code examples provided (basic and advanced)
 - Recommendations made based on findings
 
-### Notes
-
+**Notes**:
 - Uses Haiku model (cost-efficient for research)
 - WebSearch and WebFetch tools for documentation
 - Provides concrete, actionable research
 - Used by coder agent when implementing unfamiliar technologies
-- Research is passed to coder via `$research` variable
+- Research results are provided to coder in conversation context
 
 ---
 
@@ -845,158 +516,60 @@ prompt = Template(template).substitute(
 
 **Tools**: Read, Write, Grep, Glob
 
-### Input Variables
+**When to Use**:
+- Adding docstrings to code
+- Generating README files
+- Creating API documentation
+- Writing security or setup guides
 
-| Variable | Type | Required | Description | Example |
-|----------|------|----------|-------------|---------|
-| `$scope` | string | Yes | What to document | "src/auth/google_provider.py" or "codebase" |
-| `$format` | string | Yes | Documentation format | "docstrings", "readme", "api", "security", "setup" |
-| `$target` | string | No | Target directory for docs | "docs/" (default: "docs/") |
+**What It Does**:
+1. Reads scope and format from conversation
+2. Generates or updates documentation based on format:
+   - **docstrings**: Adds/updates Google-style docstrings in code
+   - **readme**: Generates comprehensive README.md
+   - **api**: Generates API reference documentation
+   - **security**: Generates security documentation
+   - **setup**: Generates setup/installation guide
 
-### Output Format
+**Documentation Formats**:
 
-**Depends on `$format`**:
+**Docstrings**:
+- Google-style docstrings
+- Args, Returns, Raises, Examples sections
+- Clear, concise descriptions
 
-#### Format: docstrings
-Adds/updates Google-style docstrings in code:
-```python
-def function_name(param1: str, param2: int) -> bool:
-    """
-    Brief description of function.
+**README**:
+- Project overview
+- Features list
+- Installation instructions
+- Quick start guide
+- API reference link
 
-    Longer description if needed. Explain what the function does,
-    not how it does it.
+**API Reference**:
+- Module/class/method documentation
+- Parameters, return values, exceptions
+- Usage examples
 
-    Args:
-        param1: Description of param1
-        param2: Description of param2
+**Security**:
+- Authentication mechanisms
+- Input validation rules
+- Vulnerability prevention
 
-    Returns:
-        Description of return value
+**Setup**:
+- Prerequisites
+- Installation steps
+- Configuration
+- Troubleshooting
 
-    Raises:
-        ValueError: When param1 is empty
-        TypeError: When param2 is not an integer
-
-    Examples:
-        >>> function_name("test", 42)
-        True
-    """
-```
-
-#### Format: readme
-Generates comprehensive README.md:
-```markdown
-# Project Name
-
-Brief description
-
-## Features
-- Feature 1
-- Feature 2
-
-## Installation
-```bash
-pip install package-name
-```
-
-## Quick Start
-[Usage examples]
-
-## API Reference
-[Link to API docs]
-```
-
-#### Format: api
-Generates API reference documentation:
-```markdown
-# API Reference
-
-## Module: module_name
-
-### Class: ClassName
-
-#### Methods
-
-##### `method_name(param1: str) -> bool`
-
-[Description, parameters, returns, raises, examples]
-```
-
-#### Format: security
-Generates security documentation:
-```markdown
-# Security Considerations
-
-## Authentication
-[How authentication works]
-
-## Input Validation
-[Validation rules]
-
-## Common Vulnerabilities
-[How prevented]
-```
-
-#### Format: setup
-Generates setup/installation guide:
-```markdown
-# Setup Guide
-
-## Prerequisites
-[Requirements]
-
-## Installation
-[Step-by-step]
-
-## Configuration
-[Environment variables]
-
-## Troubleshooting
-[Common issues]
-```
-
-### Example Invocation
-
-```python
-from string import Template
-from pathlib import Path
-
-template = Path(".claude/agents/documentation.md").read_text()
-
-# Document with docstrings
-prompt = Template(template).safe_substitute(
-    scope="src/auth/google_provider.py",
-    format="docstrings",
-    target="docs/"
-)
-
-# Generate README
-prompt = Template(template).safe_substitute(
-    scope="codebase",
-    format="readme",
-    target="."
-)
-
-# Generate API docs
-prompt = Template(template).safe_substitute(
-    scope="src/auth",
-    format="api",
-    target="docs/api"
-)
-```
-
-### Success Criteria
-
+**Success Criteria**:
 - Documentation generated in correct format
 - All public APIs documented
 - Examples provided where applicable
 - Clear, concise language
 - Proper markdown formatting
-- Files created in `$target` directory
+- Files created in target directory
 
-### Notes
-
+**Notes**:
 - Uses Haiku model (cost-efficient)
 - Google-style docstrings for Python
 - Markdown format for all docs
@@ -1015,46 +588,32 @@ prompt = Template(template).safe_substitute(
 
 **Tools**: Read, Edit
 
-### Input Variables
+**When to Use**:
+- Simplifying complex code
+- Reducing cyclomatic complexity
+- Removing code duplication
+- Improving code maintainability
 
-| Variable | Type | Required | Description | Example |
-|----------|------|----------|-------------|---------|
-| `$code` | string | Yes | Code to refactor (file paths) | "src/auth/legacy_auth.py" |
-| `$complexity_threshold` | number | No | Max cyclomatic complexity | 10 (default: 10) |
+**What It Does**:
+1. Reads code files and complexity threshold from conversation
+2. Analyzes code for complexity, duplication, naming issues
+3. Refactors code to:
+   - Reduce cyclomatic complexity (≤ threshold)
+   - Extract functions for complex logic
+   - Remove code duplication (DRY principle)
+   - Improve naming (clarity over brevity)
+   - Add type hints (if missing)
+   - Improve error handling
+4. Provides:
+   - Refactored code
+   - Explanation of changes
+   - Verification that tests still pass
+   - Backward compatibility confirmation
 
-### Output Format
-
-**Refactored Code** with:
-1. Reduced cyclomatic complexity (≤ `$complexity_threshold`)
-2. Extracted functions for complex logic
-3. Removed code duplication (DRY principle)
-4. Improved naming (clarity over brevity)
-5. Added type hints (if missing)
-6. Improved error handling
-
-**Plus**:
-- Explanation of changes
-- Verification that tests still pass
-- Backward compatibility preserved
-
-### Example Invocation
-
-```python
-from string import Template
-from pathlib import Path
-
-template = Path(".claude/agents/refactor.md").read_text()
-
-prompt = Template(template).safe_substitute(
-    code="src/auth/legacy_auth.py",
-    complexity_threshold=10
-)
-```
-
-### Refactoring Goals
+**Refactoring Goals**:
 
 **Reduce Complexity**:
-- Cyclomatic complexity ≤ `$complexity_threshold`
+- Cyclomatic complexity ≤ threshold
 - Extract functions for complex logic
 - Simplify conditional logic
 
@@ -1076,43 +635,13 @@ prompt = Template(template).safe_substitute(
 - Proper error messages
 - Error recovery patterns
 
-### Constraints
+**Constraints**:
+- DO NOT change functionality - behavior must be identical
+- Maintain all tests - tests must still pass
+- Preserve public APIs - no breaking changes
+- Keep backward compatibility - existing callers unaffected
 
-- **DO NOT change functionality** - behavior must be identical
-- **Maintain all tests** - tests must still pass
-- **Preserve public APIs** - no breaking changes
-- **Keep backward compatibility** - existing callers unaffected
-
-### Refactoring Patterns
-
-**Extract Function**:
-```python
-# Before: Complex function
-def process_data(data):
-    # 50 lines of logic...
-
-# After: Extracted helper functions
-def process_data(data):
-    validated = _validate_data(data)
-    transformed = _transform_data(validated)
-    return _save_data(transformed)
-```
-
-**Remove Duplication**:
-```python
-# Before: Duplicated code in save_user and save_product
-
-# After: Extracted common logic
-def save_user(user):
-    _execute_insert("users", user)
-
-def _execute_insert(table, data):
-    with get_db_connection() as conn:
-        # Common insert logic
-```
-
-### Success Criteria
-
+**Success Criteria**:
 - Cyclomatic complexity reduced to ≤ threshold
 - Code duplication eliminated
 - All tests still pass
@@ -1120,8 +649,7 @@ def _execute_insert(table, data):
 - Backward compatibility maintained
 - Code is more readable and maintainable
 
-### Notes
-
+**Notes**:
 - Uses Sonnet model (requires complex analysis)
 - Preserves functionality (no behavior changes)
 - All tests must pass after refactoring
@@ -1139,79 +667,36 @@ def _execute_insert(table, data):
 
 **Tools**: Read, Edit, Bash (git rm), Grep, Glob
 
-### Input Variables
+**When to Use**:
+- Removing dead code
+- Cleaning up unused imports
+- Deleting temporary files
+- Preparing code for review
 
-| Variable | Type | Required | Description | Example |
-|----------|------|----------|-------------|---------|
-| `$paths` | string | Yes | Paths to clean | "src/" or "src/auth src/utils" |
-| `$safe_mode` | string | Yes | Enable safe mode | "true" or "false" |
+**What It Does**:
+1. Reads paths and safe mode setting from conversation
+2. Scans for:
+   - Unused imports
+   - Dead code (functions/classes with 0 references)
+   - Commented-out code
+   - Temporary files (`__pycache__/`, `*.pyc`, `.pytest_cache/`)
+3. In safe mode (dry run):
+   - Reports changes only
+   - Lists candidates for deletion
+   - Shows impact analysis
+4. In execute mode:
+   - Executes cleanup
+   - Deletes dead code and files
+   - Creates git commit with changes
+5. Generates cleanup report with:
+   - Unused imports removed
+   - Dead code removed
+   - Commented code removed
+   - Temp files deleted
+   - Impact analysis (lines removed, files modified, disk space freed)
+   - Safety check (tests still pass)
 
-### Output Format
-
-**Cleanup Report**:
-```markdown
-# Cleanup Report
-
-## Unused Imports Removed
-- `file.py`: removed `import unused_module`
-
-## Dead Code Removed
-- `utils.py`: removed function `old_helper()` (0 references)
-
-## Commented Code Removed
-- `service.py`: lines 45-60 (commented out debug code)
-
-## Temp Files Deleted
-- `__pycache__/` (entire directory)
-- `*.pyc` (15 files)
-
-## Impact Analysis
-- Total lines removed: 234
-- Files modified: 8
-- Files deleted: 0
-- Estimated disk space freed: 45 KB
-
-## Safety Check
-✓ All tests still pass
-✓ No breaking changes detected
-```
-
-### Example Invocation
-
-```python
-from string import Template
-from pathlib import Path
-
-template = Path(".claude/agents/cleanup.md").read_text()
-
-# Safe mode (dry run)
-prompt = Template(template).substitute(
-    paths="src/auth src/utils",
-    safe_mode="true"
-)
-
-# Execute cleanup
-prompt = Template(template).substitute(
-    paths="src/",
-    safe_mode="false"
-)
-```
-
-### Safe Mode Behavior
-
-**Safe Mode = "true"** (Dry Run):
-- Report changes only
-- Do NOT delete files
-- List candidates for deletion
-- Show impact analysis
-
-**Safe Mode = "false"** (Execute):
-- Execute cleanup
-- Delete dead code
-- Remove unused files
-- Create git commit with changes
-
-### Cleanup Tasks
+**Cleanup Tasks**:
 
 **Unused Imports**:
 - Identify imports not referenced in file
@@ -1233,8 +718,7 @@ prompt = Template(template).substitute(
 - Remove `.pytest_cache/`
 - Remove other temp files
 
-### Success Criteria
-
+**Success Criteria**:
 - Unused imports removed
 - Dead code identified and removed (or reported)
 - Commented code removed
@@ -1242,199 +726,16 @@ prompt = Template(template).substitute(
 - Impact analysis provided
 - All tests still pass after cleanup
 
-### Notes
-
+**Notes**:
 - Uses Haiku model (cost-efficient)
 - Safe mode recommended for first run
 - Always verify tests pass after cleanup
 - Used by `/lazy cleanup` command
-- Creates git commit if `safe_mode="false"`
+- Creates git commit if safe_mode=false
 
 ---
 
-## Variable Substitution Best Practices
-
-### Required vs Optional Variables
-
-**Use `Template.substitute()` for required variables**:
-```python
-from string import Template
-
-template = Template("$required_var")
-try:
-    result = template.substitute(required_var="value")
-except KeyError as e:
-    print(f"Missing required variable: {e}")
-```
-
-**Use `Template.safe_substitute()` for optional variables**:
-```python
-from string import Template
-
-template = Template("$optional_var or default")
-result = template.safe_substitute(optional_var="value")
-# If optional_var not provided, "$optional_var" remains in string
-```
-
-### Default Values in Templates
-
-Use `${variable:-default}` syntax in agent templates:
-```markdown
-## Research Context
-${research:-No research provided}
-```
-
-This allows safe_substitute to work without the variable.
-
-### Validation Before Substitution
-
-Always validate variable values:
-```python
-def validate_story_id(story_id: str) -> str:
-    """Validate story ID format."""
-    if not re.match(r'^US-\d{8}-\d{3}$', story_id):
-        raise ValueError(f"Invalid story ID format: {story_id}")
-    return story_id
-
-story_id = validate_story_id(user_input)
-prompt = Template(template).substitute(story_id=story_id)
-```
-
-### Multi-line Variables
-
-Use triple-quoted strings for multi-line variables:
-```python
-acceptance_criteria = """
-- [ ] Implements OAuth2 provider
-- [ ] Handles token exchange
-- [ ] Validates state parameter
-- [ ] 80% test coverage
-"""
-
-prompt = Template(template).substitute(
-    task="Implement OAuth2",
-    acceptance_criteria=acceptance_criteria
-)
-```
-
----
-
-## Common Invocation Patterns
-
-### Pattern 1: Sequential Agent Pipeline
-
-```python
-# Step 1: Project-Manager creates story and tasks
-pm_prompt = Template(pm_template).substitute(
-    role="developer",
-    description=enriched_brief,
-    constraints="Python 3.11+",
-    project_context=""
-)
-# Invoke PM agent -> creates USER-STORY.md and TASK-*.md files
-
-# Step 2: Task-Enhancer adds technical context
-te_prompt = Template(te_template).substitute(
-    tasks_dir="./project-management/US-STORY/US-3.4/TASKS",
-    story_file="./project-management/US-STORY/US-3.4/US-story.md",
-    project_root="."
-)
-# Invoke TE agent -> enhances TASK-*.md files
-
-# Step 3: Coder implements each task
-for task_file in task_files:
-    coder_prompt = Template(coder_template).substitute(
-        task=task_description,
-        acceptance_criteria=criteria,
-        research=research_results
-    )
-    # Invoke Coder agent -> implements task
-
-# Step 4: Reviewer reviews each implementation
-for implementation in implementations:
-    reviewer_prompt = Template(reviewer_template).substitute(
-        code=code_files,
-        criteria=acceptance_criteria
-    )
-    # Invoke Reviewer agent -> reviews code
-
-# Step 5: Story-Reviewer reviews entire story
-story_review_prompt = Template(sr_template).substitute(
-    story_id="US-3.4",
-    story_file="./project-management/US-STORY/US-3.4/US-story.md",
-    tasks_dir="./project-management/US-STORY/US-3.4/TASKS",
-    branch_name="feat/US-3.4"
-)
-# Invoke Story-Reviewer -> reviews entire story
-```
-
-### Pattern 2: Parallel Agent Invocation
-
-```python
-# Invoke multiple agents in parallel for independent tasks
-from concurrent.futures import ThreadPoolExecutor
-
-def invoke_coder(task):
-    prompt = Template(coder_template).substitute(
-        task=task.description,
-        acceptance_criteria=task.criteria
-    )
-    # Invoke agent and return result
-
-# Execute in parallel
-with ThreadPoolExecutor(max_workers=3) as executor:
-    results = executor.map(invoke_coder, independent_tasks)
-```
-
-### Pattern 3: Research + Implementation
-
-```python
-# Step 1: Research if needed
-if requires_research:
-    research_prompt = Template(research_template).substitute(
-        keywords="Google OAuth2 Python",
-        depth="comprehensive"
-    )
-    research_results = invoke_research_agent(research_prompt)
-else:
-    research_results = "No research provided"
-
-# Step 2: Implement with research context
-coder_prompt = Template(coder_template).safe_substitute(
-    task=task_description,
-    research=research_results,
-    acceptance_criteria=criteria
-)
-```
-
-### Pattern 4: Refactor + Test + Review
-
-```python
-# Step 1: Refactor complex code
-refactor_prompt = Template(refactor_template).substitute(
-    code="src/legacy/complex_logic.py",
-    complexity_threshold=10
-)
-refactored_code = invoke_refactor_agent(refactor_prompt)
-
-# Step 2: Generate new tests
-tester_prompt = Template(tester_template).substitute(
-    code="src/legacy/complex_logic.py",
-    coverage_target=80
-)
-tests = invoke_tester_agent(tester_prompt)
-
-# Step 3: Review refactored code
-reviewer_prompt = Template(reviewer_template).substitute(
-    code="src/legacy/complex_logic.py",
-    criteria="- [ ] Complexity < 10\n- [ ] Tests pass\n- [ ] Coverage >= 80%"
-)
-review = invoke_reviewer_agent(reviewer_prompt)
-```
-
----
-
-## Agent Model Selection Guide
+## Model Selection Guide
 
 ### When to Use Sonnet
 
@@ -1480,147 +781,36 @@ Use **Haiku** model for agents with:
 
 ---
 
-## Error Handling Patterns
+## Agent Summary Table
 
-### Missing Required Variables
-
-```python
-from string import Template
-
-template = Template(agent_template)
-try:
-    prompt = template.substitute(**variables)
-except KeyError as e:
-    print(f"Missing required variable: {e}")
-    print(f"Required variables: {extract_variables(agent_template)}")
-    raise
-```
-
-### Invalid Variable Values
-
-```python
-def validate_variables(variables: dict) -> dict:
-    """Validate all variable values before substitution."""
-    validators = {
-        "story_id": lambda x: re.match(r'^US-\d{8}-\d{3}$', x),
-        "coverage_target": lambda x: 0 <= int(x) <= 100,
-        "safe_mode": lambda x: x in ["true", "false"]
-    }
-
-    for key, validator in validators.items():
-        if key in variables:
-            if not validator(variables[key]):
-                raise ValueError(f"Invalid value for {key}: {variables[key]}")
-
-    return variables
-```
-
-### Agent Timeout Handling
-
-```python
-import asyncio
-
-async def invoke_agent_with_timeout(prompt: str, timeout: int = 300):
-    """Invoke agent with timeout."""
-    try:
-        result = await asyncio.wait_for(
-            invoke_agent(prompt),
-            timeout=timeout
-        )
-        return result
-    except asyncio.TimeoutError:
-        print(f"Agent timed out after {timeout}s")
-        raise
-```
+| Agent | Model | Tools | Primary Use Case |
+|-------|-------|-------|------------------|
+| Project-Manager | Sonnet | Read, Write, Grep, Glob | Break feature into story and tasks |
+| Task-Enhancer | Sonnet | Read, Write, Edit, Grep, Glob | Add technical context to tasks |
+| Coder | Sonnet | Read, Write, Edit, Bash, Grep, Glob | Implement coding tasks |
+| Reviewer | Sonnet | Read, Grep, Glob, Bash | Review task implementation |
+| Reviewer-Story | Sonnet | Read, Grep, Glob, Bash | Review entire story |
+| Tester | Haiku | Read, Write, Bash | Generate test suites |
+| Research | Haiku | Read, WebSearch, WebFetch | Research technologies |
+| Documentation | Haiku | Read, Write, Grep, Glob | Generate/update docs |
+| Refactor | Sonnet | Read, Edit | Simplify complex code |
+| Cleanup | Haiku | Read, Edit, Bash, Grep, Glob | Remove dead code |
 
 ---
 
-## Testing Agent Invocations
+## File Locations
 
-### Unit Test Example
-
-```python
-import pytest
-from string import Template
-from pathlib import Path
-
-def test_project_manager_agent_invocation():
-    """Test project-manager agent variable substitution."""
-    template = Path(".claude/agents/project-manager.md").read_text()
-
-    prompt = Template(template).substitute(
-        role="full-stack developer",
-        description="Add OAuth2 authentication",
-        constraints="Python 3.11+, FastAPI",
-        project_context="Existing JWT auth"
-    )
-
-    # Verify substitution
-    assert "$role" not in prompt
-    assert "$description" not in prompt
-    assert "full-stack developer" in prompt
-    assert "Add OAuth2 authentication" in prompt
-
-def test_missing_required_variable():
-    """Test error when required variable missing."""
-    template = Template("$required_var")
-
-    with pytest.raises(KeyError):
-        template.substitute()  # Missing required_var
-
-def test_optional_variable():
-    """Test safe_substitute with optional variable."""
-    template = Template("${optional:-default}")
-
-    # With variable
-    result = template.safe_substitute(optional="value")
-    assert "value" in result
-
-    # Without variable
-    result = template.safe_substitute()
-    assert "${optional:-default}" in result
-```
-
----
-
-## Appendix: Quick Reference
-
-### Agent Summary Table
-
-| Agent | Model | Input Variables | Output | Primary Use Case |
-|-------|-------|----------------|--------|------------------|
-| Project-Manager | Sonnet | role, description, constraints, project_context | USER-STORY.md + TASK-*.md | Break feature into story and tasks |
-| Task-Enhancer | Sonnet | tasks_dir, story_file, project_root, codebase_focus | Enhanced TASK-*.md | Add technical context to tasks |
-| Coder | Sonnet | task, research, acceptance_criteria | Implementation + tests | Implement coding tasks |
-| Reviewer | Sonnet | code, criteria, standards | JSON review | Review task implementation |
-| Reviewer-Story | Sonnet | story_id, story_file, tasks_dir, branch_name, standards | JSON review + report | Review entire story |
-| Tester | Haiku | code, coverage_target | Test files | Generate test suites |
-| Research | Haiku | keywords, depth | Research doc | Research technologies |
-| Documentation | Haiku | scope, format, target | Documentation files | Generate/update docs |
-| Refactor | Sonnet | code, complexity_threshold | Refactored code | Simplify complex code |
-| Cleanup | Haiku | paths, safe_mode | Cleanup report | Remove dead code |
-
-### Variable Naming Conventions
-
-- Use lowercase with underscores: `$story_id`, `$tasks_dir`
-- Use descriptive names: `$acceptance_criteria` not `$ac`
-- Use defaults for optional variables: `${research:-No research provided}`
-- Validate before substitution
-- Document all variables with types and examples
-
-### File Locations
-
-All agent templates: `.claude/agents/`
-- project-manager.md
-- task-enhancer.md
-- coder.md
-- reviewer.md
-- reviewer-story.md
-- tester.md
-- research.md
-- documentation.md
-- refactor.md
-- cleanup.md
+All agent templates are located in `.claude/agents/`:
+- `project-manager.md`
+- `task-enhancer.md`
+- `coder.md`
+- `reviewer.md`
+- `reviewer-story.md`
+- `tester.md`
+- `research.md`
+- `documentation.md`
+- `refactor.md`
+- `cleanup.md`
 
 ---
 
