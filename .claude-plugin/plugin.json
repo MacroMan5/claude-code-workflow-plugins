@@ -19,7 +19,6 @@
     "./LAZY_DEV/.claude/agents/research.md",
     "./LAZY_DEV/.claude/agents/reviewer.md",
     "./LAZY_DEV/.claude/agents/reviewer-story.md",
-    "./LAZY_DEV/.claude/agents/task-enhancer.md",
     "./LAZY_DEV/.claude/agents/tester.md"
   ],
   "hooks": "./LAZY_DEV/.claude/hooks/hooks.json",
