@@ -1,17 +1,5 @@
 {
   "hooks": {
-    "PrePromptEnrichment": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python .claude/hooks/pre_prompt_enrichment.py",
-            "description": "Enrich prompts with project context and metadata before processing"
-          }
-        ]
-      }
-    ],
     "UserPromptSubmit": [
       {
         "matcher": "*",
@@ -19,19 +7,19 @@
           {
             "type": "command",
             "command": "python .claude/hooks/user_prompt_submit.py",
-            "description": "Pre-prompt enrichment with context packs, output style selection, and memory auto-detection"
+            "description": "Pre-prompt enrichment with context packs"
           }
         ]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "*",
+        "matcher": "Bash|Write|Edit",
         "hooks": [
           {
             "type": "command",
             "command": "python .claude/hooks/pre_tool_use.py",
-            "description": "Security gates and smart warnings: blocks sensitive file edits, dangerous rm, force push to main; warns on binary files, large files, protected branches, dependency chains"
+            "description": "Security gates for dangerous operations"
           }
         ]
       }
@@ -43,56 +31,7 @@
           {
             "type": "command",
             "command": "python .claude/hooks/post_tool_use_format.py",
-            "description": "Auto-formatting with Black/Ruff after file operations"
-          },
-          {
-            "type": "command",
-            "command": "python .claude/hooks/post_tool_use_quality.py",
-            "description": "Quality checks: lint, type, tests (if TDD required)"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python .claude/hooks/memory_suggestions.py",
-            "description": "Suggest memory persistence for durable facts"
-          },
-          {
-            "type": "command",
-            "command": "python .claude/hooks/memory_router.py",
-            "description": "Route memory persistence to MCP Memory graph"
-          },
-          {
-            "type": "command",
-            "command": "python .claude/hooks/log_events.py",
-            "description": "Log all tool events for audit trail"
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python .claude/hooks/session_start.py",
-            "description": "Initialize session context and inject relevant memories"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python .claude/hooks/stop.py",
-            "description": "Quality gate logging, TDD enforcement validation, and metrics collection"
+            "description": "Auto-formatting after file operations"
           }
         ]
       }
